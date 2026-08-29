@@ -1,4 +1,5 @@
 from netmiko import ConnectHandler
+# Imports Netmiko so Python can connect to Cisco routers.
 
 
 DEVICES = {
@@ -7,59 +8,84 @@ DEVICES = {
         "host": "192.168.1.201",
         "username": "netpilot",
         "password": "NetPilotLab2026!",
+        "port": 22,
     },
+
     "R2": {
         "device_type": "cisco_ios",
         "host": "192.168.1.202",
         "username": "netpilot",
         "password": "NetPilotLab2026!",
+        "port": 22,
     },
+
     "R3": {
         "device_type": "cisco_ios",
         "host": "192.168.1.203",
         "username": "netpilot",
         "password": "NetPilotLab2026!",
+        "port": 22,
     },
 }
+# Stores the connection information for all three routers.
 
 
 def run_command(device_name, command):
-    # Connects to a router and runs a show command.
+    # Connects to a router and runs a Cisco command.
 
     device = DEVICES[device_name]
-    # Gets the connection information for the router.
-
-    connection = ConnectHandler(**device)
-    # Opens an SSH connection.
-
-    try:
-        output = connection.send_command(command)
-        # Runs the requested show command.
-
-        return output
-        # Sends the output back to the program.
-
-    finally:
-        connection.disconnect()
-        # Closes the SSH connection.
+    # Looks up the router information using its name.
 
 
-def send_config(device_name, commands):
-    # Connects to a router and sends configuration commands.
+    print(f"Connecting to {device_name}...")
+    # Shows which router NetPilot is trying to reach.
 
-    device = DEVICES[device_name]
-    # Gets the connection information for the selected router.
 
-    connection = ConnectHandler(**device)
-    # Opens an SSH connection to the router.
+    for attempt in range(1, 4):
+        # Gives NetPilot three chances to connect.
 
-    try:
-        output = connection.send_config_set(commands)
-        # Sends the configuration commands to the router.
 
-        return output
-        # Returns the router's response.
+        try:
+            connection = ConnectHandler(**device)
+            # Attempts to establish the SSH connection.
 
-    finally:
-        connection.disconnect()
-        # Closes the SSH connection.
+
+            print(f"{device_name} connected!")
+            # Tells us the connection was successful.
+
+
+            try:
+                output = connection.send_command(command)
+                # Sends the requested Cisco command to the router.
+
+                return output
+                # Sends the command output back to the calling script.
+
+
+            finally:
+                connection.disconnect()
+                # Closes the SSH connection when finished.
+
+
+        except Exception as error:
+            # Catches a connection error instead of crashing NetPilot.
+
+
+            print(
+                f"{device_name} connection attempt {attempt} failed."
+            )
+            # Tells us which attempt failed.
+
+
+            if attempt == 3:
+                # Checks whether this was the final attempt.
+
+
+                print(
+                    f"{device_name} is unreachable."
+                )
+                # Reports that NetPilot could not connect.
+
+
+                return None
+                # Sends None back instead of crashing the program.
