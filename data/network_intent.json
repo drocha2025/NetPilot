@@ -1,0 +1,33 @@
+{
+    "network_name": "NetPilot v0.2 OSPF Lab",
+
+    "ospf": {
+        "process_id": 1,
+
+        "expected_neighbors": {
+            "R1": ["R2", "R3"],
+            "R2": ["R1", "R3"],
+            "R3": ["R1", "R2"]
+        },
+
+        "expected_areas": {
+            "R1": {
+                "GigabitEthernet1": 0,
+                "GigabitEthernet2": 0,
+                "Loopback0": 0
+            },
+
+            "R2": {
+                "GigabitEthernet1": 0,
+                "GigabitEthernet2": 0,
+                "Loopback0": 0
+            },
+
+            "R3": {
+                "GigabitEthernet1": 0,
+                "GigabitEthernet2": 0,
+                "Loopback0": 0
+            }
+        }
+    }
+}
