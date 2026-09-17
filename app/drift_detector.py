@@ -1,117 +1,192 @@
 from pathlib import Path
-# Lets Python work with files.
-
 
 from app.cisco_client import run_command
-# Lets NetPilot send commands to Cisco routers.
-
-
 from app.ai_drift import analyze_drift
-# Lets NetPilot send configuration differences to Qwen.
 
 
-routers = ["R1", "R2", "R3"]
-# These are the routers NetPilot will check.
+ROUTERS = ["R1", "R2", "R3", "R4", "R5"]
+
+
+def parse_interface_descriptions(configuration):
+    """
+    Extract interface descriptions from Cisco configuration.
+
+    Returns:
+
+    {
+        "GigabitEthernet1": "description TO_ISP1",
+        "GigabitEthernet2": "description TO_R2"
+    }
+    """
+
+    interfaces = {}
+
+    current_interface = None
+
+    for raw_line in configuration.splitlines():
+
+        line = raw_line.strip()
+
+        if line.startswith("interface "):
+
+            current_interface = line[len("interface "):].strip()
+
+            interfaces[current_interface] = None
+
+            continue
+
+        if (
+            current_interface
+            and line.startswith("description ")
+        ):
+
+            interfaces[current_interface] = line
+
+    return interfaces
 
 
 def check_router(router):
-    # Checks one router for configuration drift.
+    """
+    Check one router against its golden configuration.
+    """
 
     print()
-    # Prints a blank line.
-
     print("Checking " + router)
-    # Shows which router we are checking.
+
+    golden_file = Path(
+        f"data/golden/{router}.cfg"
+    )
+
+    if not golden_file.exists():
+
+        return {
+            "status": "UNKNOWN",
+            "interface": "",
+            "expected": "",
+            "current": "",
+            "diagnosis": ""
+        }
+
+    golden = golden_file.read_text(
+        encoding="utf-8",
+        errors="ignore"
+    )
+
+    live = run_command(
+        router,
+        "show running-config"
+    )
+
+    if live is None:
+
+        return {
+            "status": "UNKNOWN",
+            "interface": "",
+            "expected": "",
+            "current": "",
+            "diagnosis": ""
+        }
+
+    golden_interfaces = parse_interface_descriptions(
+        golden
+    )
+
+    live_interfaces = parse_interface_descriptions(
+        live
+    )
+
+    all_interfaces = sorted(
+        set(golden_interfaces)
+        |
+        set(live_interfaces)
+    )
+
+    for interface in all_interfaces:
+
+        expected = golden_interfaces.get(interface)
+
+        current = live_interfaces.get(interface)
+
+        if expected != current:
+
+            missing = []
+
+            added = []
+
+            if expected:
+                missing.append(expected)
+
+            if current:
+                added.append(current)
+
+            print(
+                "Configuration drift detected."
+            )
+
+            print(
+                "Detected interface: "
+                + interface
+            )
+
+            print(
+                "Expected: "
+                + str(expected)
+            )
+
+            print(
+                "Current: "
+                + str(current)
+            )
+
+            try:
+
+                diagnosis = analyze_drift(
+                    router,
+                    missing,
+                    added
+                )
+
+            except Exception as error:
+
+                diagnosis = (
+                    "AI analysis unavailable: "
+                    + str(error)
+                )
+
+            return {
+                "status": "DRIFT",
+                "interface": interface,
+                "expected": expected or "",
+                "current": current or "",
+                "diagnosis": diagnosis
+            }
+
+    print(
+        router + " is compliant"
+    )
+
+    return {
+        "status": "COMPLIANT",
+        "interface": "",
+        "expected": "",
+        "current": "",
+        "diagnosis": ""
+    }
 
 
-    golden_file = Path("data/golden/" + router + ".cfg")
-    # Finds the golden configuration for this router.
+def get_drift_status(router):
+    """
+    Public function used by the web dashboard.
+
+    The dashboard should use this function instead
+    of implementing its own drift detection.
+    """
+
+    return check_router(router)
 
 
-    golden = golden_file.read_text()
-    # Reads the golden configuration.
+if __name__ == "__main__":
 
+    for router in ROUTERS:
 
-    live = run_command(router, "show running-config")
-    # Gets the current configuration from the Cisco router.
-
-
-    golden_lines = golden.splitlines()
-    # Breaks the golden configuration into individual lines.
-
-
-    live_lines = live.splitlines()
-    # Breaks the live configuration into individual lines.
-
-
-    if golden == live:
-        # Checks whether the configurations are exactly the same.
-
-        print(router + " is compliant")
-        # Tells us there is no drift.
-
-        return
-        # Stops checking this router.
-
-
-    print(router + " has configuration drift")
-    # Tells us that something changed.
-
-
-    missing = []
-    # Creates an empty list for configuration that is missing.
-
-
-    added = []
-    # Creates an empty list for configuration that was added.
-
-
-    for line in golden_lines:
-        # Looks at every line in the golden configuration.
-
-        if line not in live_lines:
-            # Checks if the golden line is missing from the live router.
-
-            missing.append(line)
-            # Adds the missing line to our list.
-
-
-    for line in live_lines:
-        # Looks at every line in the live configuration.
-
-        if line not in golden_lines:
-            # Checks if this live line wasn't in the golden configuration.
-
-            added.append(line)
-            # Adds the unexpected line to our list.
-
-
-    print()
-    # Adds spacing.
-
-
-    print("Sending configuration drift to Qwen...")
-    # Tells us that the AI analysis is starting.
-
-
-    answer = analyze_drift(router, missing, added)
-    # Sends the router and configuration differences to Qwen.
-
-
-    print()
-    # Adds spacing.
-
-
-    print("===== NETPILOT AI DIAGNOSIS =====")
-    # Displays the AI diagnosis heading.
-
-
-    print(answer)
-    # Displays Qwen's answer.
-
-
-for router in routers:
-    # Goes through R1, R2, and R3.
-
-    check_router(router)
-    # Checks the current router.
+        check_router(router)

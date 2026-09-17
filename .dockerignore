@@ -1,0 +1,32 @@
+@"
+.venv
+# Excludes the local Windows Python virtual environment.
+
+app/.venv
+# Excludes the accidental virtual environment inside the app directory.
+
+__pycache__
+# Excludes Python cache directories.
+
+*.pyc
+# Excludes Python compiled bytecode files.
+
+.git
+# Excludes Git repository metadata from the Docker build context.
+
+.vscode
+# Excludes Visual Studio Code configuration.
+
+*.docx
+# Excludes NetPilot documentation from the runtime image.
+
+tests
+# Excludes the development test directory from the initial runtime image.
+
+.env
+# Prevents local secrets from entering the Docker image.
+
+.gitignore_old
+# Excludes the temporary backup directory we created while fixing .gitignore.
+"@ | Set-Content ".\.dockerignore"
+# Creates the Docker build exclusion file.

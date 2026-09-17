@@ -1,0 +1,956 @@
+import json
+import time
+import uuid
+
+from app.database import get_connection
+
+from app.telemetry_monitor import (
+    persist_findings
+)
+
+from app.telemetry_anomaly import (
+    get_telemetry,
+    group_samples,
+    analyze_all_interfaces
+)
+
+from app.telemetry_anomaly_store import (
+    resolve_missing_anomalies,
+    get_open_anomalies
+)
+
+from app.telemetry_correlation import (
+    find_rate_correlations,
+    save_or_update_correlation,
+    resolve_missing_correlations,
+    get_open_correlations
+)
+
+from app.telemetry_ai import (
+    analyze_correlation
+)
+
+from app.telemetry_incident import (
+    process_correlation
+)
+
+from app.telemetry_incident_sync import (
+    synchronize_incidents
+)
+
+
+WORKFLOW_NAME = "AUTOMATED_TELEMETRY"
+
+
+def generate_run_id():
+    timestamp = time.strftime(
+        "%Y%m%d-%H%M%S"
+    )
+
+    short_id = uuid.uuid4().hex[:6].upper()
+
+    return (
+        "WF-"
+        + timestamp
+        + "-"
+        + short_id
+    )
+
+
+def create_workflow_run(run_id):
+    connection = None
+
+    try:
+        connection = get_connection()
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO workflow_runs (
+                    run_id,
+                    workflow_name,
+                    status,
+                    started_at,
+                    stages_completed,
+                    stages_failed
+                )
+                VALUES (
+                    %s,
+                    %s,
+                    'RUNNING',
+                    CURRENT_TIMESTAMP,
+                    0,
+                    0
+                );
+                """,
+                (
+                    run_id,
+                    WORKFLOW_NAME
+                )
+            )
+
+        connection.commit()
+
+        return True
+
+    except Exception as error:
+        if connection is not None:
+            connection.rollback()
+
+        print(
+            "Failed to create workflow run: "
+            + str(error)
+        )
+
+        return False
+
+    finally:
+        if connection is not None:
+            connection.close()
+
+
+def complete_workflow_run(
+    run_id,
+    status,
+    stages_completed,
+    stages_failed,
+    summary,
+    error=None
+):
+    connection = None
+
+    try:
+        connection = get_connection()
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                UPDATE workflow_runs
+                SET
+                    status = %s,
+                    completed_at = CURRENT_TIMESTAMP,
+                    duration_ms = (
+                        EXTRACT(
+                            EPOCH FROM (
+                                CURRENT_TIMESTAMP - started_at
+                            )
+                        ) * 1000
+                    )::BIGINT,
+                    stages_completed = %s,
+                    stages_failed = %s,
+                    summary = %s::jsonb,
+                    error = %s
+                WHERE run_id = %s;
+                """,
+                (
+                    status,
+                    stages_completed,
+                    stages_failed,
+                    json.dumps(summary),
+                    error,
+                    run_id
+                )
+            )
+
+        connection.commit()
+
+        return True
+
+    except Exception as database_error:
+        if connection is not None:
+            connection.rollback()
+
+        print(
+            "Failed to complete workflow run: "
+            + str(database_error)
+        )
+
+        return False
+
+    finally:
+        if connection is not None:
+            connection.close()
+
+
+def record_workflow_event(
+    event_type,
+    details
+):
+    connection = None
+
+    try:
+        connection = get_connection()
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO audit_events (
+                    incident_id,
+                    event_type,
+                    actor,
+                    details
+                )
+                VALUES (
+                    NULL,
+                    %s,
+                    'NETPILOT',
+                    %s::jsonb
+                );
+                """,
+                (
+                    event_type,
+                    json.dumps(details)
+                )
+            )
+
+        connection.commit()
+
+        return True
+
+    except Exception as error:
+        if connection is not None:
+            connection.rollback()
+
+        print(
+            "Workflow audit failed: "
+            + str(error)
+        )
+
+        return False
+
+    finally:
+        if connection is not None:
+            connection.close()
+
+
+def run_anomaly_stage():
+    rows = get_telemetry()
+
+    if not rows:
+        return {
+            "status": "NO_TELEMETRY",
+            "samples": 0,
+            "findings": 0,
+            "created": 0,
+            "updated": 0,
+            "resolved": 0
+        }
+
+    samples = group_samples(rows)
+
+    findings = analyze_all_interfaces(
+        samples
+    )
+
+    created, updated = persist_findings(
+        findings
+    )
+
+    resolved = resolve_missing_anomalies(
+        findings
+    )
+
+    return {
+        "status": "COMPLETE",
+        "samples": len(rows),
+        "findings": len(findings),
+        "created": created,
+        "updated": updated,
+        "resolved": resolved
+    }
+
+
+def run_correlation_stage():
+    anomalies = get_open_anomalies()
+
+    correlations = find_rate_correlations(
+        anomalies
+    )
+
+    created = 0
+    updated = 0
+    reopened = 0
+
+    for correlation in correlations:
+        result = save_or_update_correlation(
+            correlation
+        )
+
+        if result is None:
+            continue
+
+        if result["action"] == "CREATED":
+            created += 1
+
+        elif result["action"] == "UPDATED":
+            updated += 1
+
+        elif result["action"] == "REOPENED":
+            reopened += 1
+
+    resolved = resolve_missing_correlations(
+        correlations
+    )
+
+    return {
+        "status": "COMPLETE",
+        "anomalies_examined": len(anomalies),
+        "correlations_detected": len(correlations),
+        "created": created,
+        "updated": updated,
+        "reopened": reopened,
+        "resolved": resolved
+    }
+
+
+def run_ai_stage():
+    correlations = get_open_correlations()
+
+    analyzed = 0
+    reused = 0
+    failed = 0
+
+    for correlation in correlations:
+        correlation_id = correlation[0]
+
+        result = analyze_correlation(
+            correlation_id
+        )
+
+        if result is None:
+            failed += 1
+            continue
+
+        analyzed += 1
+
+        if result.get("reused", False):
+            reused += 1
+
+    if failed > 0:
+        status = "FAILED"
+    else:
+        status = "COMPLETE"
+
+    return {
+        "status": status,
+        "open_correlations": len(correlations),
+        "analyzed": analyzed,
+        "reused": reused,
+        "failed": failed
+    }
+
+
+def run_incident_stage():
+    correlations = get_open_correlations()
+
+    created = 0
+    existing = 0
+    waiting_for_ai = 0
+    failed = 0
+
+    for correlation in correlations:
+        result = process_correlation(
+            correlation
+        )
+
+        if result is None:
+            failed += 1
+            continue
+
+        if result["action"] == "CREATED":
+            created += 1
+
+        elif result["action"] == "EXISTS":
+            existing += 1
+
+        elif result["action"] == "WAITING_FOR_AI":
+            waiting_for_ai += 1
+
+    if failed > 0:
+        status = "FAILED"
+    elif waiting_for_ai > 0:
+        status = "WAITING"
+    else:
+        status = "COMPLETE"
+
+    return {
+        "status": status,
+        "open_correlations": len(correlations),
+        "created": created,
+        "existing": existing,
+        "waiting_for_ai": waiting_for_ai,
+        "failed": failed
+    }
+
+
+def run_incident_sync_stage():
+    result = synchronize_incidents()
+
+    if result["skipped"] > 0:
+        status = "WARNING"
+    else:
+        status = "COMPLETE"
+
+    return {
+        "status": status,
+        "open_correlations": result[
+            "open_correlations"
+        ],
+        "telemetry_incidents": result[
+            "telemetry_incidents"
+        ],
+        "updated": result["updated"],
+        "resolved": result["resolved"],
+        "already_resolved": result[
+            "already_resolved"
+        ],
+        "skipped": result["skipped"]
+    }
+
+
+def validate_workflow_state():
+    connection = None
+
+    try:
+        connection = get_connection()
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT COUNT(*)
+                FROM telemetry_anomalies
+                WHERE status IN ('OPEN', 'ONGOING');
+                """
+            )
+
+            open_anomalies = cursor.fetchone()[0]
+
+            cursor.execute(
+                """
+                SELECT COUNT(*)
+                FROM telemetry_correlations
+                WHERE status IN ('OPEN', 'ONGOING');
+                """
+            )
+
+            open_correlations = cursor.fetchone()[0]
+
+            cursor.execute(
+                """
+                SELECT COUNT(*)
+                FROM incidents
+                WHERE source_type = 'TELEMETRY_CORRELATION'
+                  AND status <> 'RESOLVED';
+                """
+            )
+
+            active_incidents = cursor.fetchone()[0]
+
+            cursor.execute(
+                """
+                SELECT COUNT(*)
+                FROM telemetry_ai_analysis ai
+                JOIN telemetry_correlations c
+                  ON ai.correlation_id = c.id
+                WHERE c.status IN ('OPEN', 'ONGOING');
+                """
+            )
+
+            ai_assessments = cursor.fetchone()[0]
+
+        return {
+            "status": "VALID",
+            "open_anomalies": open_anomalies,
+            "open_correlations": open_correlations,
+            "active_incidents": active_incidents,
+            "ai_assessments": ai_assessments
+        }
+
+    except Exception as error:
+        print(
+            "Workflow validation failed: "
+            + str(error)
+        )
+
+        return {
+            "status": "FAILED",
+            "error": str(error)
+        }
+
+    finally:
+        if connection is not None:
+            connection.close()
+
+
+def display_stage(
+    number,
+    name,
+    result
+):
+    print(
+        "["
+        + str(number)
+        + "] "
+        + name
+        + " ... "
+        + result.get(
+            "status",
+            "UNKNOWN"
+        )
+    )
+
+
+def display_workflow_summary(
+    run_id,
+    anomaly_result,
+    correlation_result,
+    ai_result,
+    incident_result,
+    sync_result,
+    validation_result
+):
+    print()
+    print("========================================")
+    print("NETPILOT TELEMETRY WORKFLOW")
+    print("========================================")
+    print()
+
+    print(
+        "Run ID: "
+        + run_id
+    )
+
+    print()
+
+    print("Anomaly Findings:")
+    print(
+        "  Detected: "
+        + str(anomaly_result["findings"])
+    )
+    print(
+        "  Created: "
+        + str(anomaly_result["created"])
+    )
+    print(
+        "  Updated: "
+        + str(anomaly_result["updated"])
+    )
+    print(
+        "  Resolved: "
+        + str(anomaly_result["resolved"])
+    )
+
+    print()
+
+    print("Correlations:")
+    print(
+        "  Detected: "
+        + str(
+            correlation_result[
+                "correlations_detected"
+            ]
+        )
+    )
+    print(
+        "  Created: "
+        + str(
+            correlation_result["created"]
+        )
+    )
+    print(
+        "  Updated: "
+        + str(
+            correlation_result["updated"]
+        )
+    )
+    print(
+        "  Reopened: "
+        + str(
+            correlation_result["reopened"]
+        )
+    )
+    print(
+        "  Resolved: "
+        + str(
+            correlation_result["resolved"]
+        )
+    )
+
+    print()
+
+    print("AI Assessments:")
+    print(
+        "  Processed: "
+        + str(ai_result["analyzed"])
+    )
+    print(
+        "  Reused: "
+        + str(ai_result["reused"])
+    )
+    print(
+        "  Failed: "
+        + str(ai_result["failed"])
+    )
+
+    print()
+
+    print("Incidents:")
+    print(
+        "  Created: "
+        + str(
+            incident_result["created"]
+        )
+    )
+    print(
+        "  Existing: "
+        + str(
+            incident_result["existing"]
+        )
+    )
+    print(
+        "  Waiting for AI: "
+        + str(
+            incident_result[
+                "waiting_for_ai"
+            ]
+        )
+    )
+
+    print()
+
+    print("Incident Synchronization:")
+    print(
+        "  Updated: "
+        + str(
+            sync_result["updated"]
+        )
+    )
+    print(
+        "  Resolved: "
+        + str(
+            sync_result["resolved"]
+        )
+    )
+    print(
+        "  Already resolved: "
+        + str(
+            sync_result["already_resolved"]
+        )
+    )
+
+    print()
+
+    print("Validation:")
+    print(
+        "  Open anomalies: "
+        + str(
+            validation_result.get(
+                "open_anomalies",
+                "UNKNOWN"
+            )
+        )
+    )
+
+    print(
+        "  Open correlations: "
+        + str(
+            validation_result.get(
+                "open_correlations",
+                "UNKNOWN"
+            )
+        )
+    )
+
+    print(
+        "  Active telemetry incidents: "
+        + str(
+            validation_result.get(
+                "active_incidents",
+                "UNKNOWN"
+            )
+        )
+    )
+
+    print()
+
+    print(
+        "Workflow status: "
+        + validation_result.get(
+            "status",
+            "UNKNOWN"
+        )
+    )
+
+    print()
+
+
+def main():
+    run_id = generate_run_id()
+
+    print()
+    print("========================================")
+    print("NETPILOT AUTOMATED TELEMETRY WORKFLOW")
+    print("========================================")
+    print()
+
+    print(
+        "Run ID: "
+        + run_id
+    )
+
+    if not create_workflow_run(run_id):
+        print()
+        print(
+            "Workflow aborted: "
+            "could not create execution record."
+        )
+        return
+
+    record_workflow_event(
+        "TELEMETRY_WORKFLOW_STARTED",
+        {
+            "workflow": WORKFLOW_NAME,
+            "run_id": run_id
+        }
+    )
+
+    stages_completed = 0
+    stages_failed = 0
+
+    anomaly_result = {
+        "status": "NOT_RUN",
+        "findings": 0,
+        "created": 0,
+        "updated": 0,
+        "resolved": 0
+    }
+
+    correlation_result = {
+        "status": "NOT_RUN",
+        "correlations_detected": 0,
+        "created": 0,
+        "updated": 0,
+        "reopened": 0,
+        "resolved": 0
+    }
+
+    ai_result = {
+        "status": "NOT_RUN",
+        "analyzed": 0,
+        "reused": 0,
+        "failed": 0
+    }
+
+    incident_result = {
+        "status": "NOT_RUN",
+        "created": 0,
+        "existing": 0,
+        "waiting_for_ai": 0,
+        "failed": 0
+    }
+
+    sync_result = {
+        "status": "NOT_RUN",
+        "updated": 0,
+        "resolved": 0,
+        "already_resolved": 0,
+        "skipped": 0
+    }
+
+    validation_result = {
+        "status": "NOT_RUN"
+    }
+
+    try:
+        print(
+            "[1] Running telemetry/anomaly stage..."
+        )
+
+        anomaly_result = run_anomaly_stage()
+
+        display_stage(
+            1,
+            "Telemetry and anomaly lifecycle",
+            anomaly_result
+        )
+
+        if anomaly_result["status"] == "NO_TELEMETRY":
+            stages_failed += 1
+
+            validation_result = {
+                "status": "FAILED",
+                "error": "No telemetry data available."
+            }
+
+        else:
+            stages_completed += 1
+
+            print(
+                "[2] Running correlation stage..."
+            )
+
+            correlation_result = (
+                run_correlation_stage()
+            )
+
+            display_stage(
+                2,
+                "Correlation lifecycle",
+                correlation_result
+            )
+
+            stages_completed += 1
+
+            print(
+                "[3] Running AI assessment stage..."
+            )
+
+            ai_result = run_ai_stage()
+
+            display_stage(
+                3,
+                "AI evidence assessment",
+                ai_result
+            )
+
+            if ai_result["status"] == "FAILED":
+                stages_failed += 1
+            else:
+                stages_completed += 1
+
+            print(
+                "[4] Running incident integration stage..."
+            )
+
+            incident_result = run_incident_stage()
+
+            display_stage(
+                4,
+                "Incident integration",
+                incident_result
+            )
+
+            if incident_result["status"] == "FAILED":
+                stages_failed += 1
+            else:
+                stages_completed += 1
+
+            print(
+                "[5] Running incident synchronization stage..."
+            )
+
+            sync_result = (
+                run_incident_sync_stage()
+            )
+
+            display_stage(
+                5,
+                "Incident synchronization",
+                sync_result
+            )
+
+            stages_completed += 1
+
+            print(
+                "[6] Validating workflow state..."
+            )
+
+            validation_result = (
+                validate_workflow_state()
+            )
+
+            display_stage(
+                6,
+                "Operational validation",
+                validation_result
+            )
+
+            if validation_result["status"] == "VALID":
+                stages_completed += 1
+            else:
+                stages_failed += 1
+
+        summary = {
+            "run_id": run_id,
+            "workflow": WORKFLOW_NAME,
+            "anomaly": anomaly_result,
+            "correlation": correlation_result,
+            "ai": ai_result,
+            "incident": incident_result,
+            "incident_sync": sync_result,
+            "validation": validation_result
+        }
+
+        if stages_failed > 0:
+            overall_status = "FAILED"
+        elif validation_result.get(
+            "status"
+        ) == "VALID":
+            overall_status = "SUCCESS"
+        else:
+            overall_status = "FAILED"
+
+        complete_workflow_run(
+            run_id=run_id,
+            status=overall_status,
+            stages_completed=stages_completed,
+            stages_failed=stages_failed,
+            summary=summary
+        )
+
+        record_workflow_event(
+            "TELEMETRY_WORKFLOW_COMPLETED",
+            {
+                "workflow": WORKFLOW_NAME,
+                "run_id": run_id,
+                "status": overall_status,
+                "stages_completed": stages_completed,
+                "stages_failed": stages_failed
+            }
+        )
+
+        display_workflow_summary(
+            run_id,
+            anomaly_result,
+            correlation_result,
+            ai_result,
+            incident_result,
+            sync_result,
+            validation_result
+        )
+
+    except Exception as error:
+        print()
+        print(
+            "Workflow execution failed: "
+            + str(error)
+        )
+
+        summary = {
+            "run_id": run_id,
+            "workflow": WORKFLOW_NAME,
+            "status": "FAILED",
+            "error": str(error)
+        }
+
+        complete_workflow_run(
+            run_id=run_id,
+            status="FAILED",
+            stages_completed=stages_completed,
+            stages_failed=stages_failed + 1,
+            summary=summary,
+            error=str(error)
+        )
+
+        record_workflow_event(
+            "TELEMETRY_WORKFLOW_FAILED",
+            {
+                "workflow": WORKFLOW_NAME,
+                "run_id": run_id,
+                "error": str(error)
+            }
+        )
+
+
+if __name__ == "__main__":
+    main()

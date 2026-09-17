@@ -1,0 +1,33 @@
+# Local Python virtual environment.
+.venv/
+
+# Accidental nested Python virtual environment.
+app/.venv/
+
+# Python bytecode cache directories.
+__pycache__/
+
+# Python compiled bytecode files.
+*.pyc
+
+# Local environment variables and secrets.
+.env
+
+# Visual Studio Code workspace settings.
+.vscode/
+
+# Local Docker override files.
+docker-compose.override.yml
+
+# Local logs.
+*.log
+
+# PostgreSQL local data if created directly inside the project.
+postgres-data/
+
+# Temporary operating-system files.
+.DS_Store
+Thumbs.db
+
+# Old incorrectly-created .gitignore directory.
+.gitignore_old/

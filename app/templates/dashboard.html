@@ -1,0 +1,4652 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>NetPilot Unified NOC</title>
+
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+
+        body {
+
+            margin: 0;
+
+            font-family:
+                Arial,
+                Helvetica,
+                sans-serif;
+
+            background: #f4f6f8;
+
+            color: #1f2937;
+        }
+
+
+        .header {
+
+            background: #111827;
+
+            color: white;
+
+            padding: 24px 32px;
+        }
+
+
+        .header h1 {
+
+            margin: 0;
+
+            font-size: 28px;
+        }
+
+
+        .header p {
+
+            margin: 6px 0 0;
+
+            color: #cbd5e1;
+
+            font-size: 14px;
+        }
+
+
+        .container {
+
+            max-width: 1500px;
+
+            margin: 0 auto;
+
+            padding: 24px;
+        }
+
+
+        .summary-grid {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(6, 1fr);
+
+            gap: 16px;
+
+            margin-bottom: 24px;
+        }
+
+
+        .summary-card {
+
+            background: white;
+
+            border-radius: 10px;
+
+            padding: 18px;
+
+            box-shadow:
+                0 2px 8px
+                rgba(0, 0, 0, 0.06);
+
+            border:
+                1px solid #e5e7eb;
+        }
+
+
+        .summary-card .label {
+
+            font-size: 13px;
+
+            color: #6b7280;
+
+            margin-bottom: 8px;
+        }
+
+
+        .summary-card .value {
+
+            font-size: 28px;
+
+            font-weight: bold;
+        }
+
+
+        .summary-card.telemetry {
+
+            border-top:
+                4px solid #2563eb;
+        }
+
+
+        .summary-card.warning {
+
+            border-top:
+                4px solid #d97706;
+        }
+
+
+        .summary-card.critical {
+
+            border-top:
+                4px solid #dc2626;
+        }
+
+
+        .summary-card.capacity {
+
+            border-top:
+                4px solid #7c3aed;
+        }
+
+
+        .summary-card.capacity-watch {
+
+            border-top:
+                4px solid #d97706;
+        }
+
+
+        .summary-card.capacity-critical {
+
+            border-top:
+                4px solid #dc2626;
+        }
+
+
+        .section {
+
+            background: white;
+
+            border-radius: 10px;
+
+            margin-bottom: 24px;
+
+            padding: 20px;
+
+            box-shadow:
+                0 2px 8px
+                rgba(0, 0, 0, 0.06);
+
+            border:
+                1px solid #e5e7eb;
+        }
+
+
+        .section h2 {
+
+            margin-top: 0;
+
+            margin-bottom: 18px;
+
+            font-size: 20px;
+        }
+
+
+        .section-description {
+
+            color: #6b7280;
+
+            font-size: 13px;
+
+            margin-top: -10px;
+
+            margin-bottom: 18px;
+        }
+
+
+        table {
+
+            width: 100%;
+
+            border-collapse: collapse;
+        }
+
+
+        th {
+
+            text-align: left;
+
+            background: #f8fafc;
+
+            padding: 12px;
+
+            font-size: 12px;
+
+            text-transform: uppercase;
+
+            color: #64748b;
+
+            border-bottom:
+                1px solid #e5e7eb;
+        }
+
+
+        td {
+
+            padding: 13px 12px;
+
+            border-bottom:
+                1px solid #eef2f7;
+
+            font-size: 14px;
+
+            vertical-align: top;
+        }
+
+
+        tr:last-child td {
+
+            border-bottom: none;
+        }
+
+
+        .badge {
+
+            display: inline-block;
+
+            padding: 5px 9px;
+
+            border-radius: 999px;
+
+            font-size: 11px;
+
+            font-weight: bold;
+
+            text-transform: uppercase;
+        }
+
+
+        .badge-online,
+        .badge-healthy,
+        .badge-established,
+        .badge-installed,
+        .badge-active,
+        .badge-resolved {
+
+            background: #dcfce7;
+
+            color: #166534;
+        }
+
+
+        .badge-degraded,
+        .badge-warning,
+        .badge-open,
+        .badge-watch {
+
+            background: #fef3c7;
+
+            color: #92400e;
+        }
+
+
+        .badge-critical,
+        .badge-down,
+        .badge-not-established {
+
+            background: #fee2e2;
+
+            color: #991b1b;
+        }
+
+
+        .badge-unknown,
+        .badge-na {
+
+            background: #e5e7eb;
+
+            color: #4b5563;
+        }
+
+
+        .badge-info {
+
+            background: #dbeafe;
+
+            color: #1e40af;
+        }
+
+
+        .badge-high {
+
+            background: #ffedd5;
+
+            color: #9a3412;
+        }
+
+
+        .badge-capacity {
+
+            background: #ede9fe;
+
+            color: #5b21b6;
+        }
+
+
+        /* ========================= */
+        /* CAPACITY */
+        /* ========================= */
+
+
+        .capacity-summary {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(5, 1fr);
+
+            gap: 12px;
+
+            margin-bottom: 20px;
+        }
+
+
+        .capacity-summary-card {
+
+            background: #f8fafc;
+
+            border:
+                1px solid #e5e7eb;
+
+            border-radius: 8px;
+
+            padding: 14px;
+        }
+
+
+        .capacity-summary-card .label {
+
+            font-size: 11px;
+
+            color: #64748b;
+
+            text-transform: uppercase;
+
+            margin-bottom: 6px;
+        }
+
+
+        .capacity-summary-card .value {
+
+            font-size: 22px;
+
+            font-weight: bold;
+        }
+
+
+        .capacity-risk {
+
+            border:
+                1px solid #fed7aa;
+
+            border-left:
+                5px solid #d97706;
+
+            border-radius: 8px;
+
+            padding: 18px;
+
+            margin-bottom: 14px;
+
+            background: #fff;
+        }
+
+
+        .capacity-risk.critical {
+
+            border-color:
+                #fecaca;
+
+            border-left-color:
+                #dc2626;
+        }
+
+
+        .capacity-risk-header {
+
+            display: flex;
+
+            justify-content:
+                space-between;
+
+            align-items:
+                flex-start;
+
+            gap: 20px;
+
+            margin-bottom: 14px;
+        }
+
+
+        .capacity-risk-title {
+
+            font-size: 17px;
+
+            font-weight: bold;
+
+            margin-bottom: 5px;
+        }
+
+
+        .capacity-risk-subtitle {
+
+            color: #64748b;
+
+            font-size: 13px;
+        }
+
+
+        .capacity-risk-grid {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(6, 1fr);
+
+            gap: 10px;
+
+            margin-top: 14px;
+        }
+
+
+        .capacity-field {
+
+            background: #f8fafc;
+
+            border:
+                1px solid #e5e7eb;
+
+            border-radius: 7px;
+
+            padding: 11px;
+        }
+
+
+        .capacity-field .label {
+
+            font-size: 10px;
+
+            color: #64748b;
+
+            text-transform: uppercase;
+
+            margin-bottom: 5px;
+        }
+
+
+        .capacity-field .value {
+
+            font-size: 14px;
+
+            font-weight: 600;
+        }
+
+
+        .capacity-recommendation {
+
+            background: #f8fafc;
+
+            border:
+                1px solid #e5e7eb;
+
+            border-radius: 7px;
+
+            padding: 14px;
+
+            margin-top: 14px;
+        }
+
+
+        .capacity-recommendation .label {
+
+            font-size: 10px;
+
+            color: #64748b;
+
+            text-transform: uppercase;
+
+            margin-bottom: 6px;
+        }
+
+
+        .capacity-recommendation .content {
+
+            font-size: 14px;
+
+            line-height: 1.5;
+
+            color: #374151;
+        }
+
+
+        .capacity-normal {
+
+            background: #f0fdf4;
+
+            border:
+                1px solid #bbf7d0;
+
+            border-radius: 8px;
+
+            padding: 18px;
+
+            color: #166534;
+        }
+
+
+        /* ========================= */
+        /* INCIDENTS */
+        /* ========================= */
+
+
+        .incident-card {
+
+            border:
+                1px solid #fecaca;
+
+            border-left:
+                5px solid #dc2626;
+
+            border-radius: 8px;
+
+            padding: 20px;
+
+            margin-bottom: 18px;
+
+            background: #fff;
+        }
+
+
+        .incident-header {
+
+            display: flex;
+
+            justify-content:
+                space-between;
+
+            align-items:
+                flex-start;
+
+            gap: 20px;
+
+            margin-bottom: 14px;
+        }
+
+
+        .incident-title {
+
+            font-size: 19px;
+
+            font-weight: bold;
+
+            margin-bottom: 5px;
+        }
+
+
+        .incident-description {
+
+            color: #6b7280;
+
+            font-size: 14px;
+        }
+
+
+        .incident-meta {
+
+            color: #4b5563;
+
+            font-size: 13px;
+
+            margin-top: 8px;
+        }
+
+
+        .detail-grid {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(4, 1fr);
+
+            gap: 12px;
+
+            margin-top: 18px;
+        }
+
+
+        .detail-card {
+
+            background: #f8fafc;
+
+            border-radius: 7px;
+
+            padding: 12px;
+
+            border:
+                1px solid #e5e7eb;
+        }
+
+
+        .detail-card .label {
+
+            font-size: 11px;
+
+            color: #64748b;
+
+            text-transform: uppercase;
+
+            margin-bottom: 5px;
+        }
+
+
+        .detail-card .value {
+
+            font-size: 14px;
+
+            font-weight: 600;
+        }
+
+
+        .subsection {
+
+            margin-top: 22px;
+
+            padding-top: 18px;
+
+            border-top:
+                1px solid #e5e7eb;
+        }
+
+
+        .subsection h3 {
+
+            margin: 0 0 12px;
+
+            font-size: 16px;
+        }
+
+
+        .symptom-list {
+
+            margin: 0;
+
+            padding-left: 20px;
+        }
+
+
+        .symptom-list li {
+
+            margin-bottom: 7px;
+
+            font-size: 14px;
+        }
+
+
+        .ai-panel {
+
+            background: #f8fafc;
+
+            border:
+                1px solid #dbeafe;
+
+            border-radius: 8px;
+
+            padding: 18px;
+        }
+
+
+        .ai-header {
+
+            display: flex;
+
+            justify-content:
+                space-between;
+
+            align-items:
+                center;
+
+            gap: 12px;
+
+            margin-bottom: 15px;
+        }
+
+
+        .ai-title {
+
+            font-size: 17px;
+
+            font-weight: bold;
+        }
+
+
+        .ai-status {
+
+            font-size: 12px;
+
+            font-weight: bold;
+
+            padding: 5px 9px;
+
+            border-radius: 999px;
+
+            background: #e5e7eb;
+
+            color: #374151;
+        }
+
+
+        .ai-grid {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(3, 1fr);
+
+            gap: 12px;
+
+            margin-bottom: 16px;
+        }
+
+
+        .ai-field {
+
+            background: white;
+
+            border:
+                1px solid #e5e7eb;
+
+            border-radius: 7px;
+
+            padding: 12px;
+        }
+
+
+        .ai-field .label {
+
+            font-size: 11px;
+
+            color: #64748b;
+
+            text-transform: uppercase;
+
+            margin-bottom: 5px;
+        }
+
+
+        .ai-field .value {
+
+            font-size: 14px;
+
+            font-weight: 600;
+
+            white-space: pre-wrap;
+        }
+
+
+        .analysis-box {
+
+            background: white;
+
+            border:
+                1px solid #e5e7eb;
+
+            border-radius: 7px;
+
+            padding: 15px;
+        }
+
+
+        .analysis-box .label {
+
+            font-size: 11px;
+
+            color: #64748b;
+
+            text-transform: uppercase;
+
+            margin-bottom: 8px;
+        }
+
+
+        .analysis-text {
+
+            white-space: pre-wrap;
+
+            font-size: 14px;
+
+            line-height: 1.55;
+
+            color: #374151;
+        }
+
+
+        .operation-actions {
+
+            margin-top: 16px;
+        }
+
+
+        .action-button {
+
+            display: inline-block;
+
+            padding: 10px 16px;
+
+            border-radius: 6px;
+
+            text-decoration: none;
+
+            font-weight: 600;
+
+            background: #2563eb;
+
+            color: white;
+
+            border: none;
+
+            cursor: pointer;
+
+            font-size: 14px;
+        }
+
+
+        .action-button:hover {
+
+            opacity: 0.9;
+        }
+
+
+        .workflow-grid {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(3, 1fr);
+
+            gap: 14px;
+        }
+
+
+        .workflow-card {
+
+            background: #f8fafc;
+
+            border:
+                1px solid #e5e7eb;
+
+            border-radius: 8px;
+
+            padding: 15px;
+        }
+
+
+        .workflow-card h4 {
+
+            margin: 0 0 8px;
+
+            font-size: 14px;
+        }
+
+
+        .workflow-status {
+
+            font-size: 12px;
+
+            font-weight: bold;
+
+            text-transform: uppercase;
+
+            margin-bottom: 5px;
+        }
+
+
+        .workflow-detail {
+
+            font-size: 13px;
+
+            color: #6b7280;
+
+            white-space: pre-wrap;
+        }
+
+
+        .telemetry-card {
+
+            background: #f8fafc;
+
+            border:
+                1px solid #e5e7eb;
+
+            border-left:
+                4px solid #2563eb;
+
+            border-radius: 8px;
+
+            padding: 16px;
+
+            margin-bottom: 14px;
+        }
+
+
+        .telemetry-card.warning {
+
+            border-left-color:
+                #d97706;
+        }
+
+
+        .telemetry-card.resolved {
+
+            border-left-color:
+                #16a34a;
+        }
+
+
+        .telemetry-card-header {
+
+            display: flex;
+
+            justify-content:
+                space-between;
+
+            align-items:
+                flex-start;
+
+            gap: 16px;
+
+            margin-bottom: 12px;
+        }
+
+
+        .telemetry-card-title {
+
+            font-size: 16px;
+
+            font-weight: bold;
+        }
+
+
+        .telemetry-card-subtitle {
+
+            margin-top: 4px;
+
+            color: #64748b;
+
+            font-size: 13px;
+        }
+
+
+        .telemetry-grid {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(4, 1fr);
+
+            gap: 10px;
+
+            margin-top: 12px;
+        }
+
+
+        .telemetry-field {
+
+            background: white;
+
+            border:
+                1px solid #e5e7eb;
+
+            border-radius: 6px;
+
+            padding: 10px;
+        }
+
+
+        .telemetry-field .label {
+
+            font-size: 10px;
+
+            color: #64748b;
+
+            text-transform: uppercase;
+
+            margin-bottom: 4px;
+        }
+
+
+        .telemetry-field .value {
+
+            font-size: 13px;
+
+            font-weight: 600;
+
+            word-break: break-word;
+        }
+
+
+        .message-box {
+
+            background: white;
+
+            border:
+                1px solid #e5e7eb;
+
+            border-radius: 6px;
+
+            padding: 12px;
+
+            margin-top: 12px;
+
+            font-size: 13px;
+
+            color: #374151;
+
+            white-space: pre-wrap;
+        }
+
+
+        .ai-telemetry-panel {
+
+            background: #eff6ff;
+
+            border:
+                1px solid #bfdbfe;
+
+            border-radius: 8px;
+
+            padding: 16px;
+
+            margin-bottom: 14px;
+        }
+
+
+        .ai-telemetry-panel h3 {
+
+            margin: 0 0 14px;
+
+            font-size: 16px;
+        }
+
+
+        .ai-telemetry-grid {
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(4, 1fr);
+
+            gap: 10px;
+
+            margin-bottom: 14px;
+        }
+
+
+        .ai-telemetry-field {
+
+            background: white;
+
+            border:
+                1px solid #dbeafe;
+
+            border-radius: 6px;
+
+            padding: 10px;
+        }
+
+
+        .ai-telemetry-field .label {
+
+            font-size: 10px;
+
+            color: #64748b;
+
+            text-transform: uppercase;
+
+            margin-bottom: 4px;
+        }
+
+
+        .ai-telemetry-field .value {
+
+            font-size: 13px;
+
+            font-weight: 600;
+        }
+
+
+        .ai-telemetry-text {
+
+            background: white;
+
+            border:
+                1px solid #dbeafe;
+
+            border-radius: 6px;
+
+            padding: 12px;
+
+            margin-top: 10px;
+        }
+
+
+        .ai-telemetry-text .label {
+
+            font-size: 10px;
+
+            color: #64748b;
+
+            text-transform: uppercase;
+
+            margin-bottom: 6px;
+        }
+
+
+        .ai-telemetry-text .content {
+
+            font-size: 13px;
+
+            line-height: 1.5;
+
+            white-space: pre-wrap;
+
+            color: #374151;
+        }
+
+
+        .audit-table td {
+
+            font-size: 12px;
+        }
+
+
+        .audit-details {
+
+            max-width: 500px;
+
+            white-space: pre-wrap;
+
+            word-break: break-word;
+
+            color: #6b7280;
+        }
+
+
+        .empty-state {
+
+            text-align: center;
+
+            padding: 30px;
+
+            color: #6b7280;
+
+            font-size: 14px;
+        }
+
+
+        .footer {
+
+            text-align: center;
+
+            color: #94a3b8;
+
+            font-size: 12px;
+
+            padding: 10px 0 30px;
+        }
+
+
+        @media (max-width: 1250px) {
+
+            .summary-grid {
+
+                grid-template-columns:
+                    repeat(4, 1fr);
+            }
+
+
+            .capacity-summary {
+
+                grid-template-columns:
+                    repeat(3, 1fr);
+            }
+
+
+            .capacity-risk-grid {
+
+                grid-template-columns:
+                    repeat(3, 1fr);
+            }
+
+
+            .telemetry-grid,
+            .ai-telemetry-grid {
+
+                grid-template-columns:
+                    repeat(2, 1fr);
+            }
+        }
+
+
+        @media (max-width: 1100px) {
+
+            .summary-grid {
+
+                grid-template-columns:
+                    repeat(3, 1fr);
+            }
+
+
+            .capacity-summary {
+
+                grid-template-columns:
+                    repeat(2, 1fr);
+            }
+
+
+            .detail-grid {
+
+                grid-template-columns:
+                    repeat(2, 1fr);
+            }
+
+
+            .ai-grid {
+
+                grid-template-columns: 1fr;
+            }
+
+
+            .workflow-grid {
+
+                grid-template-columns: 1fr;
+            }
+        }
+
+
+        @media (max-width: 700px) {
+
+            .summary-grid {
+
+                grid-template-columns:
+                    repeat(2, 1fr);
+            }
+
+
+            .capacity-summary {
+
+                grid-template-columns: 1fr;
+            }
+
+
+            .capacity-risk-grid {
+
+                grid-template-columns: 1fr;
+            }
+
+
+            .detail-grid,
+            .telemetry-grid,
+            .ai-telemetry-grid {
+
+                grid-template-columns: 1fr;
+            }
+
+
+            .container {
+
+                padding: 12px;
+            }
+
+
+            .header {
+
+                padding: 20px;
+            }
+
+
+            table {
+
+                display: block;
+
+                overflow-x: auto;
+            }
+
+
+            .telemetry-card-header,
+            .capacity-risk-header {
+
+                flex-direction: column;
+            }
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<div class="header">
+
+    <h1>
+        NetPilot Unified NOC
+    </h1>
+
+    <p>
+        Cisco Network Operations and
+        AI-Assisted Incident Management
+    </p>
+
+</div>
+
+
+<div class="container">
+
+
+    <!-- ========================= -->
+    <!-- SUMMARY -->
+    <!-- ========================= -->
+
+
+    <div class="summary-grid">
+
+
+        <div class="summary-card">
+
+            <div class="label">
+                Total Routers
+            </div>
+
+            <div class="value">
+                {{ summary.get("total", 0) }}
+            </div>
+
+        </div>
+
+
+        <div class="summary-card">
+
+            <div class="label">
+                Online
+            </div>
+
+            <div class="value">
+                {{ summary.get("online", 0) }}
+            </div>
+
+        </div>
+
+
+        <div class="summary-card">
+
+            <div class="label">
+                Healthy
+            </div>
+
+            <div class="value">
+                {{ summary.get("healthy", 0) }}
+            </div>
+
+        </div>
+
+
+        <div class="summary-card">
+
+            <div class="label">
+                Degraded
+            </div>
+
+            <div class="value">
+                {{ summary.get("degraded", 0) }}
+            </div>
+
+        </div>
+
+
+        <div class="summary-card">
+
+            <div class="label">
+                Critical
+            </div>
+
+            <div class="value">
+                {{ summary.get("critical", 0) }}
+            </div>
+
+        </div>
+
+
+        <div class="summary-card">
+
+            <div class="label">
+                Active Incidents
+            </div>
+
+            <div class="value">
+                {{ summary.get("active_incidents", 0) }}
+            </div>
+
+        </div>
+
+
+        <div class="summary-card telemetry">
+
+            <div class="label">
+                Telemetry Anomalies
+            </div>
+
+            <div class="value">
+                {{ summary.get(
+                    "telemetry_anomalies",
+                    0
+                ) }}
+            </div>
+
+        </div>
+
+
+        <div class="summary-card warning">
+
+            <div class="label">
+                Open Telemetry
+            </div>
+
+            <div class="value">
+                {{ summary.get(
+                    "open_telemetry_anomalies",
+                    0
+                ) }}
+            </div>
+
+        </div>
+
+
+        <div class="summary-card telemetry">
+
+            <div class="label">
+                Correlations
+            </div>
+
+            <div class="value">
+                {{ summary.get(
+                    "telemetry_correlations",
+                    0
+                ) }}
+            </div>
+
+        </div>
+
+
+        <div class="summary-card warning">
+
+            <div class="label">
+                Open Correlations
+            </div>
+
+            <div class="value">
+                {{ summary.get(
+                    "open_telemetry_correlations",
+                    0
+                ) }}
+            </div>
+
+        </div>
+
+
+        <div class="summary-card telemetry">
+
+            <div class="label">
+                AI Assessments
+            </div>
+
+            <div class="value">
+                {{ summary.get(
+                    "telemetry_ai_assessments",
+                    0
+                ) }}
+            </div>
+
+        </div>
+
+
+        <div class="summary-card telemetry">
+
+            <div class="label">
+                Telemetry Incidents
+            </div>
+
+            <div class="value">
+                {{ summary.get(
+                    "telemetry_incidents",
+                    0
+                ) }}
+            </div>
+
+        </div>
+
+
+        <!-- CAPACITY SUMMARY -->
+
+
+        <div class="summary-card capacity">
+
+            <div class="label">
+                Capacity Status
+            </div>
+
+            <div class="value">
+                {{ summary.get(
+                    "capacity_status",
+                    "UNKNOWN"
+                ) }}
+            </div>
+
+        </div>
+
+
+        <div class="summary-card capacity">
+
+            <div class="label">
+                Capacity Forecasts
+            </div>
+
+            <div class="value">
+                {{ summary.get(
+                    "capacity_forecast_available",
+                    0
+                ) }}
+            </div>
+
+        </div>
+
+
+        <div class="summary-card capacity">
+
+            <div class="label">
+                Capacity Risks
+            </div>
+
+            <div class="value">
+                {{ summary.get(
+                    "capacity_meaningful_risks",
+                    0
+                ) }}
+            </div>
+
+        </div>
+
+
+    </div>
+
+
+    <!-- ========================= -->
+    <!-- NETWORK HEALTH -->
+    <!-- ========================= -->
+
+
+    <div class="section">
+
+        <h2>
+            Network Health
+        </h2>
+
+
+        {% if health %}
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>
+                        Router
+                    </th>
+
+                    <th>
+                        Availability
+                    </th>
+
+                    <th>
+                        Health
+                    </th>
+
+                    <th>
+                        OSPF
+                    </th>
+
+                    <th>
+                        WAN
+                    </th>
+
+                    <th>
+                        Active Path
+                    </th>
+
+                    <th>
+                        Default Route
+                    </th>
+
+                    <th>
+                        Next Hop
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+
+            {% for router in health %}
+
+
+                {% set ospf =
+                    router.get(
+                        "ospf",
+                        {}
+                    )
+                %}
+
+
+                {% set wan =
+                    router.get(
+                        "wan",
+                        {}
+                    )
+                %}
+
+
+                {% if not ospf is mapping %}
+
+                    {% set ospf = {} %}
+
+                {% endif %}
+
+
+                {% if not wan is mapping %}
+
+                    {% set wan = {} %}
+
+                {% endif %}
+
+
+                {% set availability =
+                    router.get(
+                        "availability",
+                        "UNKNOWN"
+                    )
+                %}
+
+
+                {% set health_status =
+                    router.get(
+                        "health",
+                        "UNKNOWN"
+                    )
+                %}
+
+
+                {% set ospf_status =
+                    ospf.get(
+                        "status",
+                        "UNKNOWN"
+                    )
+                %}
+
+
+                {% set wan_status =
+                    wan.get(
+                        "status",
+                        "N/A"
+                    )
+                %}
+
+
+                {% set active_path =
+                    router.get(
+                        "active_path",
+                        "N/A"
+                    )
+                %}
+
+
+                {% set default_route =
+                    router.get(
+                        "default_route",
+                        "N/A"
+                    )
+                %}
+
+
+                {% set next_hop =
+                    router.get(
+                        "default_next_hop"
+                    )
+                    or "N/A"
+                %}
+
+
+                <tr>
+
+
+                    <td>
+
+                        <strong>
+                            {{ router.get(
+                                "router",
+                                "UNKNOWN"
+                            ) }}
+                        </strong>
+
+                    </td>
+
+
+                    <td>
+
+                        {% if availability == "ONLINE" %}
+
+                            <span
+                                class="badge badge-online"
+                            >
+                                ONLINE
+                            </span>
+
+                        {% else %}
+
+                            <span
+                                class="badge badge-critical"
+                            >
+                                {{ availability }}
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <td>
+
+                        {% if health_status == "HEALTHY" %}
+
+                            <span
+                                class="badge badge-healthy"
+                            >
+                                HEALTHY
+                            </span>
+
+                        {% elif health_status == "DEGRADED" %}
+
+                            <span
+                                class="badge badge-degraded"
+                            >
+                                DEGRADED
+                            </span>
+
+                        {% elif health_status == "CRITICAL" %}
+
+                            <span
+                                class="badge badge-critical"
+                            >
+                                CRITICAL
+                            </span>
+
+                        {% else %}
+
+                            <span
+                                class="badge badge-unknown"
+                            >
+                                {{ health_status }}
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <td>
+
+                        {{ ospf_status }}
+
+                        {% if router.get(
+                            "ospf_neighbors"
+                        ) is not none %}
+
+                            (
+                            {{ router.get(
+                                "ospf_neighbors",
+                                0
+                            ) }}
+                            )
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <td>
+
+                        {% if wan_status == "HEALTHY" %}
+
+                            <span
+                                class="badge badge-healthy"
+                            >
+                                HEALTHY
+                            </span>
+
+                        {% elif wan_status == "DEGRADED" %}
+
+                            <span
+                                class="badge badge-degraded"
+                            >
+                                DEGRADED
+                            </span>
+
+                        {% elif wan_status == "CRITICAL" %}
+
+                            <span
+                                class="badge badge-critical"
+                            >
+                                CRITICAL
+                            </span>
+
+                        {% else %}
+
+                            <span
+                                class="badge badge-na"
+                            >
+                                N/A
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <td>
+                        {{ active_path or "N/A" }}
+                    </td>
+
+
+                    <td>
+                        {{ default_route or "N/A" }}
+                    </td>
+
+
+                    <td>
+                        {{ next_hop }}
+                    </td>
+
+
+                </tr>
+
+
+            {% endfor %}
+
+
+            </tbody>
+
+        </table>
+
+
+        {% else %}
+
+            <div class="empty-state">
+                No network health data available.
+            </div>
+
+        {% endif %}
+
+
+    </div>
+
+
+    <!-- ========================= -->
+    <!-- NETWORK CAPACITY -->
+    <!-- ========================= -->
+
+
+    <div class="section">
+
+        <h2>
+            Network Capacity Intelligence
+        </h2>
+
+
+        <div class="section-description">
+
+            Proactive capacity analysis combining Cisco interface
+            capacity, historical utilization, utilization trends,
+            threshold evaluation, and deterministic forecasting.
+
+            Capacity intelligence is intended to answer:
+
+            <strong>
+                Where is the network running out of capacity,
+                and when are we likely to have a problem?
+            </strong>
+
+        </div>
+
+
+        {% set capacity_status =
+            capacity.get(
+                "status",
+                "UNKNOWN"
+            )
+        %}
+
+
+        <div class="capacity-summary">
+
+
+            <div class="capacity-summary-card">
+
+                <div class="label">
+                    Overall Status
+                </div>
+
+                <div class="value">
+
+                    {% if capacity_status == "CRITICAL" %}
+
+                        <span
+                            class="badge badge-critical"
+                        >
+                            CRITICAL
+                        </span>
+
+                    {% elif capacity_status == "WATCH" %}
+
+                        <span
+                            class="badge badge-watch"
+                        >
+                            WATCH
+                        </span>
+
+                    {% elif capacity_status == "HEALTHY" %}
+
+                        <span
+                            class="badge badge-healthy"
+                        >
+                            HEALTHY
+                        </span>
+
+                    {% else %}
+
+                        <span
+                            class="badge badge-unknown"
+                        >
+                            {{ capacity_status }}
+                        </span>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+
+            <div class="capacity-summary-card">
+
+                <div class="label">
+                    Forecast Threshold
+                </div>
+
+                <div class="value">
+
+                    {{ capacity.get(
+                        "forecast_threshold",
+                        75.0
+                    ) }}%
+
+                </div>
+
+            </div>
+
+
+            <div class="capacity-summary-card">
+
+                <div class="label">
+                    Interfaces Analyzed
+                </div>
+
+                <div class="value">
+
+                    {{ capacity.get(
+                        "interfaces_analyzed",
+                        0
+                    ) }}
+
+                </div>
+
+            </div>
+
+
+            <div class="capacity-summary-card">
+
+                <div class="label">
+                    Forecasts Available
+                </div>
+
+                <div class="value">
+
+                    {{ capacity.get(
+                        "forecast_available",
+                        0
+                    ) }}
+
+                </div>
+
+            </div>
+
+
+            <div class="capacity-summary-card">
+
+                <div class="label">
+                    Thresholds Reached
+                </div>
+
+                <div class="value">
+
+                    {{ capacity.get(
+                        "threshold_reached",
+                        0
+                    ) }}
+
+                </div>
+
+            </div>
+
+
+        </div>
+
+
+        {% set meaningful_risks =
+            capacity.get(
+                "meaningful_risks",
+                []
+            )
+        %}
+
+
+        {% if meaningful_risks %}
+
+
+            <h3>
+                Meaningful Capacity Risks
+            </h3>
+
+
+            <div class="section-description">
+
+                Only capacity conditions requiring engineering
+                attention are surfaced here. Normal capacity
+                observations remain available through the
+                underlying telemetry and analytics history.
+
+            </div>
+
+
+            {% for risk in meaningful_risks %}
+
+
+                {% set overall_status =
+                    risk.get(
+                        "overall_status",
+                        "UNKNOWN"
+                    )
+                %}
+
+
+                {% set input_forecast =
+                    risk.get(
+                        "input_forecast",
+                        {}
+                    )
+                %}
+
+
+                {% set output_forecast =
+                    risk.get(
+                        "output_forecast",
+                        {}
+                    )
+                %}
+
+
+                <div class="
+                    capacity-risk
+                    {% if overall_status == "THRESHOLD_REACHED" %}
+                        critical
+                    {% endif %}
+                ">
+
+
+                    <div class="capacity-risk-header">
+
+
+                        <div>
+
+                            <div class="capacity-risk-title">
+
+                                {{ risk.get(
+                                    "router",
+                                    "UNKNOWN"
+                                ) }}
+
+                                —
+
+                                {{ risk.get(
+                                    "interface",
+                                    "UNKNOWN"
+                                ) }}
+
+                            </div>
+
+
+                            <div class="capacity-risk-subtitle">
+
+                                Capacity threshold:
+                                {{ risk.get(
+                                    "threshold",
+                                    75.0
+                                ) }}%
+
+                            </div>
+
+                        </div>
+
+
+                        <div>
+
+
+                            {% if overall_status ==
+                                "THRESHOLD_REACHED" %}
+
+                                <span
+                                    class="badge badge-critical"
+                                >
+                                    THRESHOLD REACHED
+                                </span>
+
+                            {% else %}
+
+                                <span
+                                    class="badge badge-watch"
+                                >
+                                    FORECAST AVAILABLE
+                                </span>
+
+                            {% endif %}
+
+
+                        </div>
+
+
+                    </div>
+
+
+                    <div class="capacity-risk-grid">
+
+
+                        <div class="capacity-field">
+
+                            <div class="label">
+                                Input Current
+                            </div>
+
+                            <div class="value">
+
+                                {% if input_forecast.get(
+                                    "current_utilization"
+                                ) is not none %}
+
+                                    {{
+                                        input_forecast.get(
+                                            "current_utilization"
+                                        ) | round(2)
+                                    }}%
+
+                                {% else %}
+
+                                    N/A
+
+                                {% endif %}
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="capacity-field">
+
+                            <div class="label">
+                                Output Current
+                            </div>
+
+                            <div class="value">
+
+                                {% if output_forecast.get(
+                                    "current_utilization"
+                                ) is not none %}
+
+                                    {{
+                                        output_forecast.get(
+                                            "current_utilization"
+                                        ) | round(2)
+                                    }}%
+
+                                {% else %}
+
+                                    N/A
+
+                                {% endif %}
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="capacity-field">
+
+                            <div class="label">
+                                Trend
+                            </div>
+
+                            <div class="value">
+
+                                {{ risk.get(
+                                    "overall_trend",
+                                    "UNKNOWN"
+                                ) }}
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="capacity-field">
+
+                            <div class="label">
+                                Input Slope
+                            </div>
+
+                            <div class="value">
+
+                                {% if input_forecast.get(
+                                    "slope_per_hour"
+                                ) is not none %}
+
+                                    {{
+                                        input_forecast.get(
+                                            "slope_per_hour"
+                                        ) | round(6)
+                                    }}%/hr
+
+                                {% else %}
+
+                                    N/A
+
+                                {% endif %}
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="capacity-field">
+
+                            <div class="label">
+                                Output Slope
+                            </div>
+
+                            <div class="value">
+
+                                {% if output_forecast.get(
+                                    "slope_per_hour"
+                                ) is not none %}
+
+                                    {{
+                                        output_forecast.get(
+                                            "slope_per_hour"
+                                        ) | round(6)
+                                    }}%/hr
+
+                                {% else %}
+
+                                    N/A
+
+                                {% endif %}
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="capacity-field">
+
+                            <div class="label">
+                                Projected Threshold
+                            </div>
+
+                            <div class="value">
+
+                                {% if risk.get(
+                                    "days_to_threshold"
+                                ) is not none %}
+
+                                    {{
+                                        risk.get(
+                                            "days_to_threshold"
+                                        ) | round(2)
+                                    }}
+                                    days
+
+                                {% else %}
+
+                                    Already reached
+
+                                {% endif %}
+
+                            </div>
+
+                        </div>
+
+
+                    </div>
+
+
+                    <div class="capacity-recommendation">
+
+
+                        <div class="label">
+                            Engineering Recommendation
+                        </div>
+
+
+                        <div class="content">
+
+                            {% if overall_status ==
+                                "THRESHOLD_REACHED" %}
+
+                                Capacity threshold has already
+                                been reached. Validate traffic
+                                demand, interface utilization,
+                                application growth, and available
+                                bandwidth before determining whether
+                                remediation or capacity expansion
+                                is required.
+
+                            {% else %}
+
+                                Utilization is showing an increasing
+                                trend with a deterministic projection
+                                toward the configured capacity
+                                threshold. Validate the traffic-growth
+                                pattern and business requirements
+                                before making a bandwidth expansion
+                                decision.
+
+                            {% endif %}
+
+                        </div>
+
+
+                    </div>
+
+
+                </div>
+
+
+            {% endfor %}
+
+
+        {% else %}
+
+
+            <div class="capacity-normal">
+
+                <strong>
+                    No meaningful capacity risks detected.
+                </strong>
+
+                <br><br>
+
+                Current capacity intelligence does not identify
+                an actionable threshold breach or forecast within
+                the configured engineering horizon.
+
+            </div>
+
+
+        {% endif %}
+
+
+    </div>
+
+
+    <!-- ========================= -->
+    <!-- ACTIVE INCIDENTS -->
+    <!-- ========================= -->
+
+
+    <div class="section">
+
+        <h2>
+            Active Incidents
+        </h2>
+
+
+        {% if incidents.get("active") %}
+
+
+            {% for incident in
+                incidents.get("active", [])
+            %}
+
+
+                {% set evidence =
+                    incident.get(
+                        "evidence",
+                        {}
+                    )
+                %}
+
+
+                {% set correlation =
+                    incident.get(
+                        "correlation",
+                        {}
+                    )
+                %}
+
+
+                {% set ai =
+                    incident.get(
+                        "ai_analysis",
+                        {}
+                    )
+                %}
+
+
+                {% set approval =
+                    incident.get(
+                        "approval",
+                        {}
+                    )
+                %}
+
+
+                {% set remediation =
+                    incident.get(
+                        "remediation",
+                        {}
+                    )
+                %}
+
+
+                {% set validation =
+                    incident.get(
+                        "validation",
+                        {}
+                    )
+                %}
+
+
+                {% if not evidence is mapping %}
+
+                    {% set evidence = {} %}
+
+                {% endif %}
+
+
+                {% if not correlation is mapping %}
+
+                    {% set correlation = {} %}
+
+                {% endif %}
+
+
+                {% if not ai is mapping %}
+
+                    {% set ai = {} %}
+
+                {% endif %}
+
+
+                {% if not approval is mapping %}
+
+                    {% set approval = {} %}
+
+                {% endif %}
+
+
+                {% if not remediation is mapping %}
+
+                    {% set remediation = {} %}
+
+                {% endif %}
+
+
+                {% if not validation is mapping %}
+
+                    {% set validation = {} %}
+
+                {% endif %}
+
+
+                <div class="incident-card">
+
+
+                    <div class="incident-header">
+
+
+                        <div>
+
+
+                            <div class="incident-title">
+
+                                {{ incident.get(
+                                    "router",
+                                    "UNKNOWN"
+                                ) }}
+
+                                —
+
+                                {{ incident.get(
+                                    "incident_type",
+                                    "UNKNOWN"
+                                ) }}
+
+                            </div>
+
+
+                            <div class="incident-description">
+
+                                {{ incident.get(
+                                    "description",
+                                    "No description available."
+                                ) }}
+
+                            </div>
+
+
+                            <div class="incident-meta">
+
+                                Incident ID:
+                                {{ incident.get(
+                                    "id",
+                                    "UNKNOWN"
+                                ) }}
+
+                            </div>
+
+
+                        </div>
+
+
+                        <div>
+
+                            <span
+                                class="badge badge-active"
+                            >
+
+                                {{ incident.get(
+                                    "status",
+                                    "UNKNOWN"
+                                ) }}
+
+                            </span>
+
+                        </div>
+
+
+                    </div>
+
+
+                    <div class="detail-grid">
+
+
+                        <div class="detail-card">
+
+                            <div class="label">
+                                Impact
+                            </div>
+
+                            <div class="value">
+
+                                {{ incident.get(
+                                    "impact",
+                                    "NOT_AVAILABLE"
+                                ) }}
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="detail-card">
+
+                            <div class="label">
+                                Active Path
+                            </div>
+
+                            <div class="value">
+
+                                {{ evidence.get(
+                                    "active_path"
+                                ) or "N/A" }}
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="detail-card">
+
+                            <div class="label">
+                                WAN State
+                            </div>
+
+                            <div class="value">
+
+                                {{ evidence.get(
+                                    "wan"
+                                ) or "N/A" }}
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="detail-card">
+
+                            <div class="label">
+                                Default Route
+                            </div>
+
+                            <div class="value">
+
+                                {{ evidence.get(
+                                    "default_route"
+                                ) or "N/A" }}
+
+                                {% if evidence.get(
+                                    "default_next_hop"
+                                ) %}
+
+                                    —
+                                    {{ evidence.get(
+                                        "default_next_hop"
+                                    ) }}
+
+                                {% endif %}
+
+                            </div>
+
+                        </div>
+
+
+                    </div>
+
+
+                    <div class="detail-grid">
+
+
+                        <div class="detail-card">
+
+                            <div class="label">
+                                Primary Interface
+                            </div>
+
+                            <div class="value">
+
+                                {{ evidence.get(
+                                    "primary_interface_name"
+                                ) or "N/A" }}
+
+                                —
+
+                                {% if evidence.get(
+                                    "primary_interface"
+                                ) == "UP" %}
+
+                                    <span
+                                        class="badge badge-established"
+                                    >
+                                        UP
+                                    </span>
+
+                                {% elif evidence.get(
+                                    "primary_interface"
+                                ) == "DOWN" %}
+
+                                    <span
+                                        class="badge badge-down"
+                                    >
+                                        DOWN
+                                    </span>
+
+                                {% else %}
+
+                                    <span
+                                        class="badge badge-na"
+                                    >
+
+                                        {{ evidence.get(
+                                            "primary_interface"
+                                        ) or "N/A" }}
+
+                                    </span>
+
+                                {% endif %}
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="detail-card">
+
+                            <div class="label">
+                                Primary BGP
+                            </div>
+
+                            <div class="value">
+
+                                {% if evidence.get(
+                                    "primary_bgp"
+                                ) == "ESTABLISHED" %}
+
+                                    <span
+                                        class="badge badge-established"
+                                    >
+                                        ESTABLISHED
+                                    </span>
+
+                                {% else %}
+
+                                    <span
+                                        class="badge badge-not-established"
+                                    >
+
+                                        {{ evidence.get(
+                                            "primary_bgp"
+                                        ) or "N/A" }}
+
+                                    </span>
+
+                                {% endif %}
+
+
+                                {% if evidence.get(
+                                    "primary_bgp_neighbor"
+                                ) %}
+
+                                    —
+                                    {{ evidence.get(
+                                        "primary_bgp_neighbor"
+                                    ) }}
+
+                                {% endif %}
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="detail-card">
+
+                            <div class="label">
+                                Backup Interface
+                            </div>
+
+                            <div class="value">
+
+                                {{ evidence.get(
+                                    "backup_interface_name"
+                                ) or "N/A" }}
+
+                                —
+
+                                {% if evidence.get(
+                                    "backup_interface"
+                                ) == "UP" %}
+
+                                    <span
+                                        class="badge badge-established"
+                                    >
+                                        UP
+                                    </span>
+
+                                {% elif evidence.get(
+                                    "backup_interface"
+                                ) == "DOWN" %}
+
+                                    <span
+                                        class="badge badge-down"
+                                    >
+                                        DOWN
+                                    </span>
+
+                                {% else %}
+
+                                    <span
+                                        class="badge badge-na"
+                                    >
+
+                                        {{ evidence.get(
+                                            "backup_interface"
+                                        ) or "N/A" }}
+
+                                    </span>
+
+                                {% endif %}
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="detail-card">
+
+                            <div class="label">
+                                Backup BGP
+                            </div>
+
+                            <div class="value">
+
+                                {% if evidence.get(
+                                    "backup_bgp"
+                                ) == "ESTABLISHED" %}
+
+                                    <span
+                                        class="badge badge-established"
+                                    >
+                                        ESTABLISHED
+                                    </span>
+
+                                {% else %}
+
+                                    <span
+                                        class="badge badge-not-established"
+                                    >
+
+                                        {{ evidence.get(
+                                            "backup_bgp"
+                                        ) or "N/A" }}
+
+                                    </span>
+
+                                {% endif %}
+
+
+                                {% if evidence.get(
+                                    "backup_bgp_neighbor"
+                                ) %}
+
+                                    —
+                                    {{ evidence.get(
+                                        "backup_bgp_neighbor"
+                                    ) }}
+
+                                {% endif %}
+
+                            </div>
+
+                        </div>
+
+
+                    </div>
+
+
+                    <div class="subsection">
+
+                        <h3>
+                            Correlated Symptoms
+                        </h3>
+
+
+                        {% set symptoms =
+                            correlation.get(
+                                "symptoms",
+                                []
+                            )
+                        %}
+
+
+                        {% if symptoms %}
+
+                            <ul class="symptom-list">
+
+
+                                {% for symptom in symptoms %}
+
+                                    <li>
+                                        {{ symptom }}
+                                    </li>
+
+                                {% endfor %}
+
+
+                            </ul>
+
+
+                        {% else %}
+
+                            <div class="empty-state">
+                                No correlated symptoms available.
+                            </div>
+
+                        {% endif %}
+
+
+                    </div>
+
+
+                    <div class="subsection">
+
+
+                        <div class="ai-panel">
+
+
+                            <div class="ai-header">
+
+                                <div class="ai-title">
+                                    AI Root-Cause Analysis
+                                </div>
+
+                                <div class="ai-status">
+
+                                    {{ ai.get(
+                                        "status",
+                                        "NOT_STARTED"
+                                    ) }}
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="ai-grid">
+
+
+                                <div class="ai-field">
+
+                                    <div class="label">
+                                        Confidence
+                                    </div>
+
+                                    <div class="value">
+
+                                        {{ ai.get(
+                                            "confidence"
+                                        ) or
+                                        "NOT_AVAILABLE" }}
+
+                                    </div>
+
+                                </div>
+
+
+                                <div class="ai-field">
+
+                                    <div class="label">
+                                        Root Cause
+                                    </div>
+
+                                    <div class="value">
+
+                                        {{ ai.get(
+                                            "root_cause"
+                                        ) or
+                                        "NOT_AVAILABLE" }}
+
+                                    </div>
+
+                                </div>
+
+
+                                <div class="ai-field">
+
+                                    <div class="label">
+                                        Risk
+                                    </div>
+
+                                    <div class="value">
+
+                                        {{ ai.get(
+                                            "risk"
+                                        ) or
+                                        "NOT_AVAILABLE" }}
+
+                                    </div>
+
+                                </div>
+
+
+                            </div>
+
+
+                            <div class="analysis-box">
+
+                                <div class="label">
+                                    Full Analysis
+                                </div>
+
+
+                                <div class="analysis-text">
+
+
+                                    {% if ai.get(
+                                        "analysis"
+                                    ) %}
+
+                                        {{ ai.get(
+                                            "analysis"
+                                        ) }}
+
+                                    {% else %}
+
+                                        AI analysis is not
+                                        available yet.
+
+                                    {% endif %}
+
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="operation-actions">
+
+                                <a
+                                    href="/ai/diagnose"
+                                    class="action-button"
+                                >
+                                    Run AI Diagnosis
+                                </a>
+
+                            </div>
+
+
+                        </div>
+
+
+                    </div>
+
+
+                    <div class="subsection">
+
+
+                        <h3>
+                            Operational Workflow
+                        </h3>
+
+
+                        {% set approval_status =
+                            approval.get(
+                                "status",
+                                "NOT_STARTED"
+                            )
+                        %}
+
+
+                        {% set remediation_status =
+                            remediation.get(
+                                "status",
+                                "NOT_STARTED"
+                            )
+                        %}
+
+
+                        {% set validation_status =
+                            validation.get(
+                                "status",
+                                "NOT_STARTED"
+                            )
+                        %}
+
+
+                        <div class="workflow-grid">
+
+
+                            <div class="workflow-card">
+
+                                <h4>
+                                    Engineer Approval
+                                </h4>
+
+                                <div class="workflow-status">
+                                    {{ approval_status }}
+                                </div>
+
+
+                                {% if approval.get(
+                                    "engineer"
+                                ) %}
+
+                                    <div class="workflow-detail">
+
+                                        Engineer:
+                                        {{ approval.get(
+                                            "engineer"
+                                        ) }}
+
+                                    </div>
+
+                                {% else %}
+
+                                    <div class="workflow-detail">
+                                        No engineer approval recorded.
+                                    </div>
+
+                                {% endif %}
+
+
+                            </div>
+
+
+                            <div class="workflow-card">
+
+                                <h4>
+                                    Remediation
+                                </h4>
+
+                                <div class="workflow-status">
+                                    {{ remediation_status }}
+                                </div>
+
+
+                                {% if remediation.get(
+                                    "plan"
+                                ) %}
+
+                                    <div class="workflow-detail">
+
+                                        {{ remediation.get(
+                                            "plan"
+                                        ) }}
+
+                                    </div>
+
+                                {% else %}
+
+                                    <div class="workflow-detail">
+                                        No remediation plan available.
+                                    </div>
+
+                                {% endif %}
+
+
+                            </div>
+
+
+                            <div class="workflow-card">
+
+                                <h4>
+                                    Validation
+                                </h4>
+
+                                <div class="workflow-status">
+                                    {{ validation_status }}
+                                </div>
+
+
+                                {% if validation.get(
+                                    "result"
+                                ) %}
+
+                                    <div class="workflow-detail">
+
+                                        {{ validation.get(
+                                            "result"
+                                        ) }}
+
+                                    </div>
+
+                                {% else %}
+
+                                    <div class="workflow-detail">
+                                        No validation result available.
+                                    </div>
+
+                                {% endif %}
+
+
+                            </div>
+
+
+                        </div>
+
+
+                    </div>
+
+
+                    <div class="subsection">
+
+
+                        <h3>
+                            NetPilot Operations &amp; Safety
+                        </h3>
+
+
+                        <div class="workflow-card">
+
+                            <div class="workflow-status">
+                                AI Advisory Only
+                            </div>
+
+
+                            <div class="workflow-detail">
+
+                                AI analysis does not make network
+                                changes. Configuration changes require
+                                deterministic remediation logic,
+                                engineer approval, pre-change validation,
+                                post-change validation, and audit logging.
+
+                            </div>
+
+                        </div>
+
+
+                    </div>
+
+
+                </div>
+
+
+            {% endfor %}
+
+
+        {% else %}
+
+
+            <div class="empty-state">
+                No active incidents.
+            </div>
+
+
+        {% endif %}
+
+
+    </div>
+
+
+    <!-- ========================= -->
+    <!-- TELEMETRY ANOMALIES -->
+    <!-- ========================= -->
+
+
+    <div class="section">
+
+        <h2>
+            Telemetry Anomalies
+        </h2>
+
+
+        <div class="section-description">
+
+            Historical and active telemetry anomalies detected by
+            NetPilot. Records remain persisted for operational history
+            and correlation analysis.
+
+        </div>
+
+
+        {% if telemetry_anomalies %}
+
+
+            {% for anomaly in telemetry_anomalies %}
+
+
+                {% set anomaly_status =
+                    anomaly.get(
+                        "status",
+                        "UNKNOWN"
+                    )
+                %}
+
+
+                <div class="
+                    telemetry-card
+
+                    {% if anomaly_status == "RESOLVED" %}
+                        resolved
+                    {% elif anomaly.get("severity") == "WARNING" %}
+                        warning
+                    {% endif %}
+                ">
+
+
+                    <div class="telemetry-card-header">
+
+
+                        <div>
+
+
+                            <div class="telemetry-card-title">
+
+                                {{ anomaly.get(
+                                    "router",
+                                    "UNKNOWN"
+                                ) }}
+
+                                —
+
+                                {{ anomaly.get(
+                                    "interface_name",
+                                    "UNKNOWN"
+                                ) }}
+
+                            </div>
+
+
+                            <div class="telemetry-card-subtitle">
+
+                                {{ anomaly.get(
+                                    "anomaly_type",
+                                    "UNKNOWN"
+                                ) }}
+
+                            </div>
+
+
+                        </div>
+
+
+                        <div>
+
+
+                            {% if anomaly_status == "OPEN" %}
+
+                                <span
+                                    class="badge badge-open"
+                                >
+                                    OPEN
+                                </span>
+
+                            {% elif anomaly_status == "RESOLVED" %}
+
+                                <span
+                                    class="badge badge-resolved"
+                                >
+                                    RESOLVED
+                                </span>
+
+                            {% else %}
+
+                                <span
+                                    class="badge badge-unknown"
+                                >
+
+                                    {{ anomaly_status }}
+
+                                </span>
+
+                            {% endif %}
+
+
+                        </div>
+
+
+                    </div>
+
+
+                    <div class="telemetry-grid">
+
+
+                        <div class="telemetry-field">
+
+                            <div class="label">
+                                Severity
+                            </div>
+
+                            <div class="value">
+
+                                {{ anomaly.get(
+                                    "severity",
+                                    "UNKNOWN"
+                                ) }}
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="telemetry-field">
+
+                            <div class="label">
+                                Occurrences
+                            </div>
+
+                            <div class="value">
+
+                                {{ anomaly.get(
+                                    "occurrence_count",
+                                    0
+                                ) }}
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="telemetry-field">
+
+                            <div class="label">
+                                First Detected
+                            </div>
+
+                            <div class="value">
+
+                                {{ anomaly.get(
+                                    "first_detected_at",
+                                    "N/A"
+                                ) }}
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="telemetry-field">
+
+                            <div class="label">
+                                Last Detected
+                            </div>
+
+                            <div class="value">
+
+                                {{ anomaly.get(
+                                    "last_detected_at",
+                                    "N/A"
+                                ) }}
+
+                            </div>
+
+                        </div>
+
+
+                    </div>
+
+
+                    <div class="message-box">
+
+                        <strong>
+                            Detection Message
+                        </strong>
+
+                        <br>
+
+                        {{ anomaly.get(
+                            "message",
+                            "No message available."
+                        ) }}
+
+                    </div>
+
+
+                </div>
+
+
+            {% endfor %}
+
+
+        {% else %}
+
+
+            <div class="empty-state">
+                No telemetry anomalies available.
+            </div>
+
+
+        {% endif %}
+
+
+    </div>
+
+
+    <!-- ========================= -->
+    <!-- TELEMETRY CORRELATIONS -->
+    <!-- ========================= -->
+
+
+    <div class="section">
+
+        <h2>
+            Telemetry Correlations
+        </h2>
+
+
+        <div class="section-description">
+
+            NetPilot correlates related telemetry anomalies into
+            a higher-level operational symptom before creating
+            an incident.
+
+        </div>
+
+
+        {% if telemetry_correlations %}
+
+
+            {% for correlation in
+                telemetry_correlations
+            %}
+
+
+                <div class="
+                    telemetry-card
+
+                    {% if correlation.get("status")
+                        == "RESOLVED" %}
+                        resolved
+                    {% endif %}
+                ">
+
+
+                    <div class="telemetry-card-header">
+
+
+                        <div>
+
+
+                            <div class="telemetry-card-title">
+
+                                {{ correlation.get(
+                                    "router",
+                                    "UNKNOWN"
+                                ) }}
+
+                                —
+
+                                {{ correlation.get(
+                                    "interface_name",
+                                    "UNKNOWN"
+                                ) }}
+
+                            </div>
+
+
+                            <div class="telemetry-card-subtitle">
+
+                                {{ correlation.get(
+                                    "correlation_type",
+                                    "UNKNOWN"
+                                ) }}
+
+                            </div>
+
+
+                        </div>
+
+
+                        <div>
+
+
+                            {% if correlation.get(
+                                "status"
+                            ) == "OPEN" %}
+
+                                <span
+                                    class="badge badge-open"
+                                >
+                                    OPEN
+                                </span>
+
+                            {% elif correlation.get(
+                                "status"
+                            ) == "RESOLVED" %}
+
+                                <span
+                                    class="badge badge-resolved"
+                                >
+                                    RESOLVED
+                                </span>
+
+                            {% else %}
+
+                                <span
+                                    class="badge badge-unknown"
+                                >
+
+                                    {{ correlation.get(
+                                        "status",
+                                        "UNKNOWN"
+                                    ) }}
+
+                                </span>
+
+                            {% endif %}
+
+
+                        </div>
+
+
+                    </div>
+
+
+                    <div class="telemetry-grid">
+
+
+                        <div class="telemetry-field">
+
+                            <div class="label">
+                                Severity
+                            </div>
+
+                            <div class="value">
+
+                                {{ correlation.get(
+                                    "severity",
+                                    "UNKNOWN"
+                                ) }}
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="telemetry-field">
+
+                            <div class="label">
+                                Occurrences
+                            </div>
+
+                            <div class="value">
+
+                                {{ correlation.get(
+                                    "occurrence_count",
+                                    0
+                                ) }}
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="telemetry-field">
+
+                            <div class="label">
+                                First Detected
+                            </div>
+
+                            <div class="value">
+
+                                {{ correlation.get(
+                                    "first_detected_at",
+                                    "N/A"
+                                ) }}
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="telemetry-field">
+
+                            <div class="label">
+                                Last Detected
+                            </div>
+
+                            <div class="value">
+
+                                {{ correlation.get(
+                                    "last_detected_at",
+                                    "N/A"
+                                ) }}
+
+                            </div>
+
+                        </div>
+
+
+                    </div>
+
+
+                    <div class="message-box">
+
+                        <strong>
+                            Correlation Summary
+                        </strong>
+
+                        <br>
+
+                        {{ correlation.get(
+                            "summary",
+                            "No correlation summary available."
+                        ) }}
+
+                        <br><br>
+
+                        <strong>
+                            Source Anomaly IDs:
+                        </strong>
+
+                        {{ correlation.get(
+                            "source_anomaly_ids",
+                            []
+                        ) }}
+
+                    </div>
+
+
+                </div>
+
+
+            {% endfor %}
+
+
+        {% else %}
+
+
+            <div class="empty-state">
+                No telemetry correlations available.
+            </div>
+
+
+        {% endif %}
+
+
+    </div>
+
+
+    <!-- ========================= -->
+    <!-- TELEMETRY AI -->
+    <!-- ========================= -->
+
+
+    <div class="section">
+
+        <h2>
+            Telemetry AI Assessments
+        </h2>
+
+
+        <div class="section-description">
+
+            Evidence-based Ollama assessments generated from
+            persisted telemetry correlations. AI analysis is
+            advisory and does not directly modify the network.
+
+        </div>
+
+
+        {% if telemetry_ai_assessments %}
+
+
+            {% for assessment in
+                telemetry_ai_assessments
+            %}
+
+
+                <div class="ai-telemetry-panel">
+
+
+                    <h3>
+
+                        {{ assessment.get(
+                            "router",
+                            "UNKNOWN"
+                        ) }}
+
+                        —
+
+                        {{ assessment.get(
+                            "interface_name",
+                            "UNKNOWN"
+                        ) }}
+
+                        —
+
+                        {{ assessment.get(
+                            "correlation_type",
+                            "UNKNOWN"
+                        ) }}
+
+                    </h3>
+
+
+                    <div class="ai-telemetry-grid">
+
+
+                        <div class="ai-telemetry-field">
+
+                            <div class="label">
+                                AI Status
+                            </div>
+
+                            <div class="value">
+
+                                {{ assessment.get(
+                                    "status",
+                                    "UNKNOWN"
+                                ) }}
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="ai-telemetry-field">
+
+                            <div class="label">
+                                Risk
+                            </div>
+
+                            <div class="value">
+
+                                {{ assessment.get(
+                                    "risk",
+                                    "NOT_AVAILABLE"
+                                ) }}
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="ai-telemetry-field">
+
+                            <div class="label">
+                                Confidence
+                            </div>
+
+                            <div class="value">
+
+                                {{ assessment.get(
+                                    "confidence",
+                                    "NOT_AVAILABLE"
+                                ) }}
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="ai-telemetry-field">
+
+                            <div class="label">
+                                Severity
+                            </div>
+
+                            <div class="value">
+
+                                {{ assessment.get(
+                                    "severity",
+                                    "UNKNOWN"
+                                ) }}
+
+                            </div>
+
+                        </div>
+
+
+                    </div>
+
+
+                    <div class="ai-telemetry-text">
+
+                        <div class="label">
+                            Assessment
+                        </div>
+
+                        <div class="content">
+
+                            {{ assessment.get(
+                                "assessment",
+                                "No assessment available."
+                            ) }}
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="ai-telemetry-text">
+
+                        <div class="label">
+                            Likely Explanation
+                        </div>
+
+                        <div class="content">
+
+                            {{ assessment.get(
+                                "likely_explanation",
+                                "No explanation available."
+                            ) }}
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="ai-telemetry-text">
+
+                        <div class="label">
+                            Customer Impact
+                        </div>
+
+                        <div class="content">
+
+                            {{ assessment.get(
+                                "customer_impact",
+                                "No customer impact assessment available."
+                            ) }}
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="ai-telemetry-text">
+
+                        <div class="label">
+                            Recommended Investigation
+                        </div>
+
+                        <div class="content">
+
+                            {{ assessment.get(
+                                "recommended_investigation",
+                                "No investigation recommendation available."
+                            ) }}
+
+                        </div>
+
+                    </div>
+
+
+                </div>
+
+
+            {% endfor %}
+
+
+        {% else %}
+
+
+            <div class="empty-state">
+                No telemetry AI assessments available.
+            </div>
+
+
+        {% endif %}
+
+
+    </div>
+
+
+    <!-- ========================= -->
+    <!-- TELEMETRY INCIDENTS -->
+    <!-- ========================= -->
+
+
+    <div class="section">
+
+        <h2>
+            Telemetry-Generated Incidents
+        </h2>
+
+
+        <div class="section-description">
+
+            Operational incidents created from correlated telemetry
+            symptoms. Incident lifecycle state is synchronized with
+            the originating telemetry correlation.
+
+        </div>
+
+
+        {% if telemetry_incidents %}
+
+
+        <table>
+
+
+            <thead>
+
+                <tr>
+
+                    <th>
+                        Incident ID
+                    </th>
+
+                    <th>
+                        Router
+                    </th>
+
+                    <th>
+                        Type
+                    </th>
+
+                    <th>
+                        Status
+                    </th>
+
+                    <th>
+                        Health
+                    </th>
+
+                    <th>
+                        Impact
+                    </th>
+
+                    <th>
+                        Source
+                    </th>
+
+                    <th>
+                        Updated
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+
+            {% for incident in
+                telemetry_incidents
+            %}
+
+
+                <tr>
+
+
+                    <td>
+
+                        <strong>
+
+                            {{ incident.get(
+                                "incident_id",
+                                "UNKNOWN"
+                            ) }}
+
+                        </strong>
+
+                    </td>
+
+
+                    <td>
+
+                        {{ incident.get(
+                            "router",
+                            "UNKNOWN"
+                        ) }}
+
+                    </td>
+
+
+                    <td>
+
+                        {{ incident.get(
+                            "incident_type",
+                            "UNKNOWN"
+                        ) }}
+
+                    </td>
+
+
+                    <td>
+
+
+                        {% if incident.get(
+                            "status"
+                        ) == "RESOLVED" %}
+
+                            <span
+                                class="badge badge-resolved"
+                            >
+                                RESOLVED
+                            </span>
+
+                        {% elif incident.get(
+                            "status"
+                        ) == "OPEN" %}
+
+                            <span
+                                class="badge badge-open"
+                            >
+                                OPEN
+                            </span>
+
+                        {% else %}
+
+                            <span
+                                class="badge badge-unknown"
+                            >
+
+                                {{ incident.get(
+                                    "status",
+                                    "UNKNOWN"
+                                ) }}
+
+                            </span>
+
+                        {% endif %}
+
+
+                    </td>
+
+
+                    <td>
+
+                        {{ incident.get(
+                            "health",
+                            "UNKNOWN"
+                        ) }}
+
+                    </td>
+
+
+                    <td>
+
+                        {{ incident.get(
+                            "impact",
+                            "NOT_AVAILABLE"
+                        ) }}
+
+                    </td>
+
+
+                    <td>
+
+                        {{ incident.get(
+                            "source_type",
+                            "UNKNOWN"
+                        ) }}
+
+
+                        {% if incident.get(
+                            "source_id"
+                        ) %}
+
+                            #{{ incident.get(
+                                "source_id"
+                            ) }}
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <td>
+
+                        {{ incident.get(
+                            "updated_at",
+                            "N/A"
+                        ) }}
+
+                    </td>
+
+
+                </tr>
+
+
+            {% endfor %}
+
+
+            </tbody>
+
+
+        </table>
+
+
+        {% else %}
+
+
+            <div class="empty-state">
+                No telemetry-generated incidents available.
+            </div>
+
+
+        {% endif %}
+
+
+    </div>
+
+
+    <!-- ========================= -->
+    <!-- AUDIT -->
+    <!-- ========================= -->
+
+
+    <div class="section">
+
+        <h2>
+            Recent Operational Events
+        </h2>
+
+
+        <div class="section-description">
+
+            Recent NetPilot operational events recorded in PostgreSQL.
+            This provides an auditable history of incident and telemetry
+            lifecycle activity.
+
+        </div>
+
+
+        {% if recent_audit_events %}
+
+
+        <table class="audit-table">
+
+
+            <thead>
+
+                <tr>
+
+                    <th>
+                        Time
+                    </th>
+
+                    <th>
+                        Event
+                    </th>
+
+                    <th>
+                        Actor
+                    </th>
+
+                    <th>
+                        Incident
+                    </th>
+
+                    <th>
+                        Details
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+
+            {% for event in
+                recent_audit_events
+            %}
+
+
+                <tr>
+
+
+                    <td>
+
+                        {{ event.get(
+                            "created_at",
+                            "N/A"
+                        ) }}
+
+                    </td>
+
+
+                    <td>
+
+                        <strong>
+
+                            {{ event.get(
+                                "event_type",
+                                "UNKNOWN"
+                            ) }}
+
+                        </strong>
+
+                    </td>
+
+
+                    <td>
+
+                        {{ event.get(
+                            "actor",
+                            "UNKNOWN"
+                        ) }}
+
+                    </td>
+
+
+                    <td>
+
+
+                        {% if event.get(
+                            "incident_id"
+                        ) %}
+
+                            #{{ event.get(
+                                "incident_id"
+                            ) }}
+
+                        {% else %}
+
+                            N/A
+
+                        {% endif %}
+
+
+                    </td>
+
+
+                    <td>
+
+                        <div class="audit-details">
+
+                            {{ event.get(
+                                "details",
+                                ""
+                            ) }}
+
+                        </div>
+
+                    </td>
+
+
+                </tr>
+
+
+            {% endfor %}
+
+
+            </tbody>
+
+
+        </table>
+
+
+        {% else %}
+
+
+            <div class="empty-state">
+                No recent audit events available.
+            </div>
+
+
+        {% endif %}
+
+
+    </div>
+
+
+    <!-- ========================= -->
+    <!-- OPERATIONS -->
+    <!-- ========================= -->
+
+
+    <div class="section">
+
+        <h2>
+            NetPilot Operations
+        </h2>
+
+
+        <div class="workflow-grid">
+
+
+            <div class="workflow-card">
+
+                <h4>
+                    Network Monitoring
+                </h4>
+
+                <div class="workflow-status">
+                    ACTIVE
+                </div>
+
+                <div class="workflow-detail">
+
+                    Cisco device health and WAN state are collected
+                    through the unified network-state model.
+
+                </div>
+
+            </div>
+
+
+            <div class="workflow-card">
+
+                <h4>
+                    Telemetry Monitoring
+                </h4>
+
+                <div class="workflow-status">
+                    ACTIVE
+                </div>
+
+                <div class="workflow-detail">
+
+                    Interface telemetry is persisted in PostgreSQL
+                    and evaluated for deterministic anomalies.
+
+                </div>
+
+            </div>
+
+
+            <div class="workflow-card">
+
+                <h4>
+                    Capacity Intelligence
+                </h4>
+
+                <div class="workflow-status">
+                    ACTIVE
+                </div>
+
+                <div class="workflow-detail">
+
+                    NetPilot evaluates interface utilization,
+                    capacity thresholds, trends, and actionable
+                    threshold forecasts.
+
+                </div>
+
+            </div>
+
+
+            <div class="workflow-card">
+
+                <h4>
+                    Incident Detection
+                </h4>
+
+                <div class="workflow-status">
+                    ACTIVE
+                </div>
+
+                <div class="workflow-detail">
+
+                    NetPilot correlates multiple symptoms before
+                    creating an operational incident.
+
+                </div>
+
+            </div>
+
+
+            <div class="workflow-card">
+
+                <h4>
+                    Telemetry Correlation
+                </h4>
+
+                <div class="workflow-status">
+                    ACTIVE
+                </div>
+
+                <div class="workflow-detail">
+
+                    Related telemetry anomalies are grouped into
+                    higher-level operational symptoms.
+
+                </div>
+
+            </div>
+
+
+            <div class="workflow-card">
+
+                <h4>
+                    AI Assessment
+                </h4>
+
+                <div class="workflow-status">
+                    ADVISORY
+                </div>
+
+                <div class="workflow-detail">
+
+                    Ollama provides evidence-based assessment
+                    without making network changes.
+
+                </div>
+
+            </div>
+
+
+            <div class="workflow-card">
+
+                <h4>
+                    Audit Logging
+                </h4>
+
+                <div class="workflow-status">
+                    ACTIVE
+                </div>
+
+                <div class="workflow-detail">
+
+                    Incident and telemetry lifecycle events are
+                    persisted for operational traceability.
+
+                </div>
+
+            </div>
+
+
+        </div>
+
+
+    </div>
+
+
+    <!-- ========================= -->
+    <!-- SAFETY -->
+    <!-- ========================= -->
+
+
+    <div class="section">
+
+        <h2>
+            NetPilot Safety Model
+        </h2>
+
+
+        <div class="workflow-grid">
+
+
+            <div class="workflow-card">
+
+                <h4>
+                    Detection
+                </h4>
+
+                <div class="workflow-status">
+                    DETERMINISTIC
+                </div>
+
+                <div class="workflow-detail">
+
+                    Network telemetry, capacity, and health
+                    conditions are evaluated using deterministic
+                    engineering logic.
+
+                </div>
+
+            </div>
+
+
+            <div class="workflow-card">
+
+                <h4>
+                    AI
+                </h4>
+
+                <div class="workflow-status">
+                    ADVISORY ONLY
+                </div>
+
+                <div class="workflow-detail">
+
+                    Ollama analyzes persisted evidence and provides
+                    explanations, risk, confidence, and investigation
+                    recommendations.
+
+                </div>
+
+            </div>
+
+
+            <div class="workflow-card">
+
+                <h4>
+                    Remediation
+                </h4>
+
+                <div class="workflow-status">
+                    ENGINEER CONTROLLED
+                </div>
+
+                <div class="workflow-detail">
+
+                    Configuration changes require deterministic
+                    remediation logic, engineer approval, validation,
+                    and audit logging.
+
+                </div>
+
+            </div>
+
+
+        </div>
+
+
+    </div>
+
+
+    <div class="footer">
+
+        NetPilot Unified NOC —
+
+        Cisco Network Operations &amp;
+
+        AI-Assisted Management
+
+    </div>
+
+
+</div>
+
+
+</body>
+
+</html>

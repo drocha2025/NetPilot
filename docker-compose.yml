@@ -1,0 +1,104 @@
+services:
+  # Defines the NetPilot application container.
+  netpilot:
+
+    # Builds the NetPilot application image locally.
+    build:
+      context: .
+      # Uses the NetPilot project directory as the Docker build context.
+
+      dockerfile: Dockerfile
+      # Uses the Dockerfile in the NetPilot project root.
+
+    # Gives the application container a predictable name.
+    container_name: netpilot
+
+    # Maps Windows TCP port 5000 to the Flask application port.
+    ports:
+      - "5000:5000"
+      # Makes the NetPilot dashboard available at http://localhost:5000.
+
+    # Provides database connection settings to NetPilot.
+    environment:
+
+      # Uses the PostgreSQL Compose service name for container-to-container communication.
+      NETPILOT_DB_HOST: postgres
+
+      # Uses PostgreSQL's internal Docker network port.
+      NETPILOT_DB_PORT: 5432
+
+      # Requires the database name to exist in the .env file.
+      NETPILOT_DB_NAME: ${NETPILOT_DB_NAME:?NETPILOT_DB_NAME is not set}
+
+      # Requires the database username to exist in the .env file.
+      NETPILOT_DB_USER: ${NETPILOT_DB_USER:?NETPILOT_DB_USER is not set}
+
+      # Requires the database password to exist in the .env file.
+      NETPILOT_DB_PASSWORD: ${NETPILOT_DB_PASSWORD:?NETPILOT_DB_PASSWORD is not set}
+
+    # Controls the startup relationship between NetPilot and PostgreSQL.
+    depends_on:
+      postgres:
+        condition: service_healthy
+        # Starts NetPilot only after PostgreSQL reports healthy.
+
+    # Restarts NetPilot automatically unless intentionally stopped.
+    restart: unless-stopped
+
+
+  # Defines the PostgreSQL database container.
+  postgres:
+
+    # Uses the official PostgreSQL 18 image.
+    image: postgres:18
+
+    # Gives the database container a predictable name.
+    container_name: netpilot-postgres
+
+    # Provides PostgreSQL initialization settings.
+    environment:
+
+      # Creates the NetPilot database during first initialization.
+      POSTGRES_DB: ${NETPILOT_DB_NAME:?NETPILOT_DB_NAME is not set}
+
+      # Creates the NetPilot database application user.
+      POSTGRES_USER: ${NETPILOT_DB_USER:?NETPILOT_DB_USER is not set}
+
+      # Provides the required PostgreSQL password.
+      POSTGRES_PASSWORD: ${NETPILOT_DB_PASSWORD:?NETPILOT_DB_PASSWORD is not set}
+
+    # Provides persistent storage for the PostgreSQL database.
+    volumes:
+      - netpilot_postgres_data:/var/lib/postgresql
+      # PostgreSQL 18 expects the persistent volume at /var/lib/postgresql.
+
+    # Exposes PostgreSQL to the Windows host on port 5433.
+    ports:
+      - "5433:5432"
+      # Keeps the existing host PostgreSQL on port 5432 untouched.
+
+    # Checks whether PostgreSQL is ready to accept connections.
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U ${NETPILOT_DB_USER:?NETPILOT_DB_USER is not set} -d ${NETPILOT_DB_NAME:?NETPILOT_DB_NAME is not set}
+        # Uses PostgreSQL's built-in readiness check.
+
+      interval: 10s
+      # Runs the health check every ten seconds.
+
+      timeout: 5s
+      # Allows five seconds for each health check.
+
+      retries: 5
+      # Requires PostgreSQL to fail five checks before being considered unhealthy.
+
+    # Restarts PostgreSQL automatically unless intentionally stopped.
+    restart: unless-stopped
+
+
+# Defines persistent Docker storage.
+volumes:
+
+  # Stores the NetPilot PostgreSQL database independently of the container.
+  netpilot_postgres_data:

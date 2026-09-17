@@ -1,5 +1,5 @@
 from netmiko import ConnectHandler
-# Imports Netmiko so Python can connect to Cisco routers.
+import time
 
 
 DEVICES = {
@@ -7,85 +7,231 @@ DEVICES = {
         "device_type": "cisco_ios",
         "host": "192.168.1.201",
         "username": "netpilot",
-        "password": "NetPilotLab2026!",
+        "password": "Cisco123!",
         "port": 22,
     },
-
     "R2": {
         "device_type": "cisco_ios",
         "host": "192.168.1.202",
         "username": "netpilot",
-        "password": "NetPilotLab2026!",
+        "password": "Cisco123!",
         "port": 22,
     },
-
     "R3": {
         "device_type": "cisco_ios",
         "host": "192.168.1.203",
         "username": "netpilot",
-        "password": "NetPilotLab2026!",
+        "password": "Cisco123!",
+        "port": 22,
+    },
+    "R4": {
+        "device_type": "cisco_ios",
+        "host": "192.168.1.204",
+        "username": "netpilot",
+        "password": "Cisco123!",
+        "port": 22,
+    },
+    "R5": {
+        "device_type": "cisco_ios",
+        "host": "192.168.1.205",
+        "username": "netpilot",
+        "password": "Cisco123!",
         "port": 22,
     },
 }
-# Stores the connection information for all three routers.
+
+
+def connect_to_router(device_name):
+    """
+    Establish an SSH connection to a Cisco device.
+
+    Retries up to three times before returning None.
+    """
+
+    if device_name not in DEVICES:
+        print(
+            "Unknown device: "
+            + device_name
+        )
+        return None
+
+    device = DEVICES[device_name]
+
+    print(
+        "Connecting to "
+        + device_name
+        + "..."
+    )
+
+    for attempt in range(1, 4):
+
+        try:
+
+            connection = ConnectHandler(
+                **device
+            )
+
+            print(
+                device_name
+                + " connected!"
+            )
+
+            return connection
+
+        except Exception as error:
+
+            print(
+                device_name
+                + " connection attempt "
+                + str(attempt)
+                + " failed."
+            )
+
+            if attempt < 3:
+
+                time.sleep(2)
+
+            else:
+
+                print(
+                    device_name
+                    + " could not be reached."
+                )
+
+                print(error)
+
+                return None
 
 
 def run_command(device_name, command):
-    # Connects to a router and runs a Cisco command.
+    """
+    Run one command using one SSH session.
+    """
 
-    device = DEVICES[device_name]
-    # Looks up the router information using its name.
+    connection = connect_to_router(
+        device_name
+    )
+
+    if connection is None:
+        return None
+
+    try:
+
+        output = connection.send_command(
+            command,
+            read_timeout=30
+        )
+
+        return output
+
+    except Exception as error:
+
+        print(
+            "Command failed on "
+            + device_name
+            + ": "
+            + str(error)
+        )
+
+        return None
+
+    finally:
+
+        connection.disconnect()
 
 
-    print(f"Connecting to {device_name}...")
-    # Shows which router NetPilot is trying to reach.
+def run_commands(device_name, commands):
+    """
+    Run multiple commands using one SSH session.
 
+    Returns:
 
-    for attempt in range(1, 4):
-        # Gives NetPilot three chances to connect.
+    {
+        "command": "output"
+    }
 
+    If an individual command fails, the remaining
+    commands continue to execute.
+    """
 
-        try:
-            connection = ConnectHandler(**device)
-            # Attempts to establish the SSH connection.
+    connection = connect_to_router(
+        device_name
+    )
 
+    if connection is None:
+        return None
 
-            print(f"{device_name} connected!")
-            # Tells us the connection was successful.
+    results = {}
 
+    try:
 
-            try:
-                output = connection.send_command(command)
-                # Sends the requested Cisco command to the router.
-
-                return output
-                # Sends the command output back to the calling script.
-
-
-            finally:
-                connection.disconnect()
-                # Closes the SSH connection when finished.
-
-
-        except Exception as error:
-            # Catches a connection error instead of crashing NetPilot.
-
+        for command in commands:
 
             print(
-                f"{device_name} connection attempt {attempt} failed."
+                "Running "
+                + command
+                + "..."
             )
-            # Tells us which attempt failed.
 
+            try:
 
-            if attempt == 3:
-                # Checks whether this was the final attempt.
+                results[command] = (
+                    connection.send_command(
+                        command,
+                        read_timeout=30
+                    )
+                )
 
+            except Exception as error:
+
+                results[command] = (
+                    "COMMAND_FAILED: "
+                    + str(error)
+                )
 
                 print(
-                    f"{device_name} is unreachable."
+                    "Command failed: "
+                    + command
                 )
-                # Reports that NetPilot could not connect.
+
+        return results
+
+    finally:
+
+        connection.disconnect()
 
 
-                return None
-                # Sends None back instead of crashing the program.
+def run_config(device_name, commands):
+    """
+    Apply configuration commands using one SSH session.
+    """
+
+    connection = connect_to_router(
+        device_name
+    )
+
+    if connection is None:
+        return None
+
+    try:
+
+        output = connection.send_config_set(
+            commands
+        )
+
+        return output
+
+    except Exception as error:
+
+        print(
+            "Configuration failed on "
+            + device_name
+            + ": "
+            + str(error)
+        )
+
+        return None
+
+    finally:
+
+        connection.disconnect()

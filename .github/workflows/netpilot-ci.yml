@@ -1,0 +1,42 @@
+name: NetPilot CI
+# Gives the GitHub Actions workflow a human-readable name.
+
+on:
+  push:
+    branches:
+      - main
+      # Runs the workflow when code is pushed to the main branch.
+
+  pull_request:
+    branches:
+      - main
+      # Runs the workflow when a pull request targets the main branch.
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    # Runs the validation job on a temporary GitHub-hosted Linux runner.
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        # Downloads the NetPilot repository into the CI runner.
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+        # Installs the Python version used by the NetPilot Docker image.
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+        # Installs the Python packages required by NetPilot.
+
+      - name: Validate Python imports
+        run: python -c "import app.dashboard; import app.noc_service; import app.platform_health"
+        # Confirms that critical NetPilot modules can be imported successfully.
+
+      - name: Build Docker image
+        run: docker build -t netpilot-ci .
+        # Verifies that the NetPilot Docker image can be built successfully.
