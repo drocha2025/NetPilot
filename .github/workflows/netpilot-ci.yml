@@ -4,12 +4,12 @@ name: NetPilot CI
 on:
   push:
     branches:
-      - main
+      - master
       # Runs the workflow when code is pushed to the main branch.
 
   pull_request:
     branches:
-      - main
+      - master
       # Runs the workflow when a pull request targets the main branch.
 
 jobs:
