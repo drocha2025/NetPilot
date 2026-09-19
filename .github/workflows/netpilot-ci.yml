@@ -1,42 +1,46 @@
 name: NetPilot CI
-# Gives the GitHub Actions workflow a human-readable name.
+# Gives the GitHub Actions workflow a clear name.
 
 on:
+  # Runs the workflow when code is pushed to the repository.
   push:
     branches:
       - master
-      # Runs the workflow when code is pushed to the main branch.
 
+  # Runs the workflow when a pull request targets the master branch.
   pull_request:
     branches:
       - master
-      # Runs the workflow when a pull request targets the main branch.
+
 
 jobs:
-  validate:
+  test:
+    # Gives the CI job a descriptive name.
+    name: Python CI Tests
+
+    # Runs the job on a fresh GitHub-hosted Ubuntu system.
     runs-on: ubuntu-latest
-    # Runs the validation job on a temporary GitHub-hosted Linux runner.
 
     steps:
 
+      # Downloads the NetPilot repository into the CI runner.
       - name: Checkout repository
         uses: actions/checkout@v4
-        # Downloads the NetPilot repository into the CI runner.
 
+      # Installs the Python version used by the CI environment.
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-        # Installs the Python version used by the NetPilot Docker image.
 
+      # Installs the NetPilot Python dependencies.
       - name: Install dependencies
-        run: pip install -r requirements.txt
-        # Installs the Python packages required by NetPilot.
+        run: python -m pip install -r requirements.txt
 
-      - name: Validate Python imports
-        run: python -c "import app.dashboard; import app.noc_service; import app.platform_health"
-        # Confirms that critical NetPilot modules can be imported successfully.
+      # Installs pytest because it is required to execute the CI test suite.
+      - name: Install pytest
+        run: python -m pip install pytest
 
-      - name: Build Docker image
-        run: docker build -t netpilot-ci .
-        # Verifies that the NetPilot Docker image can be built successfully.
+      # Runs only tests that are designed to execute without live infrastructure.
+      - name: Run CI-safe tests
+        run: python -m pytest tests/test_ci_smoke.py -q
