@@ -14,8 +14,3 @@ def test_netpilot_configuration_loads():
     # Confirms that the Ollama timeout is a positive number.
     assert config.OLLAMA_TIMEOUT > 0
 
-# Defines a test that intentionally fails to verify the CI failure gate.
-def test_ci_failure_gate():
-
-    # Intentionally fails the test so GitHub Actions should report failure.
-    assert False
