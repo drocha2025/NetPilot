@@ -16,7 +16,7 @@ on:
 jobs:
   test:
     # Gives the CI job a descriptive name.
-    name: Python CI Tests
+    name: Python and Docker CI
 
     # Runs the job on a fresh GitHub-hosted Ubuntu system.
     runs-on: ubuntu-latest
@@ -31,6 +31,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
+          # Uses Python 3.13 to match the NetPilot Docker image.
           python-version: "3.13"
 
       # Installs the NetPilot Python dependencies.
@@ -44,3 +45,7 @@ jobs:
       # Runs only tests that are designed to execute without live infrastructure.
       - name: Run CI-safe tests
         run: python -m pytest tests/test_ci_smoke.py -q
+
+      # Builds the NetPilot Docker image to verify the application can still be packaged.
+      - name: Build NetPilot Docker image
+        run: docker build -t netpilot:ci .
