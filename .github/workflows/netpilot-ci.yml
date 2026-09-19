@@ -16,7 +16,7 @@ on:
 jobs:
   test:
     # Gives the CI job a descriptive name.
-    name: Python and Docker CI
+    name: Python, Security, Secret Scan, and Docker CI
 
     # Runs the job on a fresh GitHub-hosted Ubuntu system.
     runs-on: ubuntu-latest
@@ -45,6 +45,23 @@ jobs:
       # Runs only tests that are designed to execute without live infrastructure.
       - name: Run CI-safe tests
         run: python -m pytest tests/test_ci_smoke.py -q
+
+      # Installs pip-audit so CI can inspect Python dependencies for known vulnerabilities.
+      - name: Install pip-audit
+        run: python -m pip install pip-audit
+
+      # Runs the dependency security audit.
+      # The command is allowed to report known vulnerabilities without failing the pipeline.
+      - name: Run dependency security audit
+        continue-on-error: true
+        run: python -m pip_audit -r requirements.txt
+
+      # Scans the repository for accidentally committed secrets.
+      - name: Run Gitleaks secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          # Provides the GitHub token required by the Gitleaks action.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Builds the NetPilot Docker image to verify the application can still be packaged.
       - name: Build NetPilot Docker image
