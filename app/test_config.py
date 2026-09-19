@@ -20,3 +20,5 @@ output = send_config("R3", commands)
 
 print(output)
 # Displays the router's response.
+
+this_will_intentionally_fail = undefined_variable_for_ci_test
