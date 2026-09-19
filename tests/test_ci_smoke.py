@@ -1,8 +1,8 @@
-# Imports the NetPilot configuration module so we can verify it loads correctly.
+# Imports the NetPilot configuration module so the tests can inspect application settings.
 from app import config
 
 
-# Defines a simple CI smoke test that does not require network access.
+# Defines a CI smoke test that verifies the Ollama host is configured.
 def test_netpilot_configuration_loads():
 
     # Confirms that NetPilot has a configured Ollama endpoint.
@@ -14,3 +14,9 @@ def test_netpilot_configuration_loads():
     # Confirms that the Ollama timeout is a positive number.
     assert config.OLLAMA_TIMEOUT > 0
 
+
+# Defines a CI smoke test that verifies the Ollama endpoint uses HTTP or HTTPS.
+def test_ollama_endpoint_uses_valid_protocol():
+
+    # Confirms that the configured Ollama endpoint starts with an accepted HTTP protocol.
+    assert config.OLLAMA_HOST.startswith(("http://", "https://"))
