@@ -4,6 +4,9 @@ Flask==3.1.3
 netmiko==4.7.0
 # Provides SSH connectivity to the Cisco routers used by NetPilot.
 
+paramiko==3.5.1
+# Pins Paramiko to a version compatible with Netmiko 4.7.0 and avoids the vulnerable 4.0.0 release.
+
 psycopg[binary]==3.3.5
 # Provides PostgreSQL connectivity for NetPilot.
 
